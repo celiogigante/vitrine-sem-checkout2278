@@ -16,6 +16,7 @@ import AdminProductHighlights from "@/components/AdminProductHighlights";
 import AdminBrandsManager from "@/components/AdminBrandsManager";
 import AdminModelManager from "@/components/AdminModelManager";
 import AdminVariantManager from "@/components/AdminVariantManager";
+import ModelSelector from "@/components/ModelSelector";
 import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2 } from "lucide-react";
 import MigrationHelper from "@/components/MigrationHelper";
 import { useToast } from "@/hooks/use-toast";
@@ -41,7 +42,6 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [models, setModels] = useState<Model[]>([]);
-  const [modelsByBrand, setModelsByBrand] = useState<Model[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -92,10 +92,6 @@ export default function AdminDashboard() {
       // Load models
       const modelsList = await getModels();
       setModels(modelsList);
-
-      // Load models for selected brand
-      const initialModels = await getModelsByBrand("Apple");
-      setModelsByBrand(initialModels);
     } catch (err) {
       console.error("Error loading products:", err);
       toast({
@@ -177,9 +173,6 @@ export default function AdminDashboard() {
       promotion: product.promotion,
       is_on_request: product.isOnRequest || false,
     });
-    // Load models for the selected brand
-    const brandModels = await getModelsByBrand(product.brand);
-    setModelsByBrand(brandModels);
     setEditing(product.id);
     setShowForm(true);
   };
@@ -452,10 +445,8 @@ export default function AdminDashboard() {
                   />
                   <Select
                     value={form.brand}
-                    onValueChange={async (v) => {
+                    onValueChange={(v) => {
                       setForm({ ...form, brand: v, model_id: undefined });
-                      const brandModels = await getModelsByBrand(v);
-                      setModelsByBrand(brandModels);
                     }}
                   >
                     <SelectTrigger>
@@ -469,18 +460,11 @@ export default function AdminDashboard() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={form.model_id || ""} onValueChange={(v) => setForm({ ...form, model_id: v || undefined })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione modelo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modelsByBrand.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ModelSelector
+                    value={form.model_id}
+                    onSelect={(modelId) => setForm({ ...form, model_id: modelId || undefined })}
+                    brand={form.brand}
+                  />
                 </div>
               </div>
 
