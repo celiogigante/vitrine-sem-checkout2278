@@ -91,8 +91,9 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
         toast({ title: "Modelo cadastrado com sucesso!" });
       }
     } catch (err) {
-      console.error("Error creating model:", err);
-      toast({ title: "Erro ao cadastrar modelo", variant: "destructive" });
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error("Error creating model:", errorMsg);
+      toast({ title: `Erro ao cadastrar modelo: ${errorMsg}`, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
