@@ -91,16 +91,19 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
         toast({ title: "Modelo cadastrado com sucesso!" });
       }
     } catch (err: any) {
+      console.log("Full error object:", JSON.stringify(err, null, 2));
+      console.log("Error keys:", Object.keys(err || {}));
+
       let errorMsg = "Erro desconhecido";
 
       if (err?.message) {
         errorMsg = err.message;
+      } else if (err?.hint) {
+        errorMsg = err.hint;
       } else if (err?.details) {
         errorMsg = err.details;
-      } else if (err instanceof Error) {
-        errorMsg = err.message;
-      } else if (typeof err === 'string') {
-        errorMsg = err;
+      } else if (err?.code) {
+        errorMsg = `Erro ${err.code}`;
       }
 
       console.error("Error creating model:", err);
