@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase, Product, Order, Customer } from "@/lib/supabase";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
-import { Loader2, TrendingUp, ShoppingCart, Users, Eye, Package, DollarSign, MessageCircle } from "lucide-react";
+import { Loader2, TrendingUp, ShoppingCart, Users, Eye, Package, DollarSign, MessageCircle, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getWhatsAppClickCount, getWhatsAppClicksRankingByModel, getModelViewsAndWhatsAppClicks } from "@/lib/products";
 
 interface InsightsData {
@@ -27,6 +30,7 @@ export function Insights() {
   const [data, setData] = useState<InsightsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [showConversionModal, setShowConversionModal] = useState(false);
 
   useEffect(() => {
     loadInsights();
@@ -369,30 +373,77 @@ export function Insights() {
           </div>
         </div>
 
-        {/* Model Views and WhatsApp Clicks */}
+        {/* Model Conversion Rate Analysis */}
         {data.modelViewsAndClicks && data.modelViewsAndClicks.length > 0 && (
-          <div className="rounded-lg border bg-card p-4">
-            <h3 className="font-semibold mb-4">Modelos: Visualizações vs Cliques WhatsApp</h3>
-            <div className="space-y-2">
-              {data.modelViewsAndClicks.map((model, index) => (
-                <div key={model.modelId} className="flex items-center justify-between text-sm p-3 border-b last:border-b-0 hover:bg-muted/50 rounded">
-                  <div className="flex items-center gap-3 flex-1">
-                    <span className="font-semibold text-muted-foreground min-w-6">#{index + 1}</span>
-                    <div className="flex-1">
-                      <span className="truncate font-medium">{model.modelName}</span>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {model.views} visualizações • {model.whatsappClicks} cliques
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-lg">{model.conversionRate}%</div>
-                    <div className="text-xs text-muted-foreground">taxa</div>
-                  </div>
-                </div>
-              ))}
+          <>
+            <div className="rounded-lg border bg-card p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Taxa de Conversão por Modelo</h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowConversionModal(true)}
+                >
+                  Ver Detalhes
+                </Button>
+              </div>
+
+              {/* Bar Chart */}
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={data.modelViewsAndClicks}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="modelName"
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    interval={0}
+                  />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) => typeof value === 'number' ? value.toFixed(2) : value}
+                    contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px', color: '#fff' }}
+                  />
+                  <Legend />
+                  <Bar dataKey="views" name="Visualizações" fill="#3b82f6" />
+                  <Bar dataKey="whatsappClicks" name="Cliques WhatsApp" fill="#10b981" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          </div>
+
+            {/* Conversion Rate Modal */}
+            <Dialog open={showConversionModal} onOpenChange={setShowConversionModal}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Taxa de Conversão por Modelo</DialogTitle>
+                </DialogHeader>
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-muted">
+                      <tr>
+                        <th className="text-left p-2 font-semibold">Posição</th>
+                        <th className="text-left p-2 font-semibold">Modelo</th>
+                        <th className="text-center p-2 font-semibold">Visualizações</th>
+                        <th className="text-center p-2 font-semibold">Cliques</th>
+                        <th className="text-center p-2 font-semibold">Taxa %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.modelViewsAndClicks.map((model, index) => (
+                        <tr key={model.modelId} className="border-b hover:bg-muted/50">
+                          <td className="p-2 font-semibold text-muted-foreground">#{index + 1}</td>
+                          <td className="p-2 font-medium">{model.modelName}</td>
+                          <td className="p-2 text-center">{model.views}</td>
+                          <td className="p-2 text-center font-semibold text-green-600">{model.whatsappClicks}</td>
+                          <td className="p-2 text-center font-bold text-lg">{model.conversionRate}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
 
         {/* Condition Distribution */}
