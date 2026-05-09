@@ -42,6 +42,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [models, setModels] = useState<Model[]>([]);
+  const [modelViewsMap, setModelViewsMap] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
@@ -92,6 +93,13 @@ export default function AdminDashboard() {
       // Load models
       const modelsList = await getModels();
       setModels(modelsList);
+
+      // Create a map of model views
+      const viewsMap: Record<string, number> = {};
+      modelsList.forEach(model => {
+        viewsMap[model.id] = model.views;
+      });
+      setModelViewsMap(viewsMap);
     } catch (err) {
       console.error("Error loading products:", err);
       toast({
@@ -687,7 +695,12 @@ export default function AdminDashboard() {
                           </Badge>
                         </td>
                         <td className="p-3 hidden md:table-cell text-muted-foreground">
-                          {p.views}
+                          <div>
+                            <div className="font-medium">{modelViewsMap[p.modelId || ''] || 0}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {p.modelId ? "views do modelo" : "sem modelo"}
+                            </div>
+                          </div>
                         </td>
                         <td className="p-3 text-right">
                           <div className="flex justify-end gap-1">
