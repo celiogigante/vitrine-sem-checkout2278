@@ -465,7 +465,9 @@ export default function AdminDashboard() {
 
               {/* Básico */}
               <div className="space-y-2">
-                <h3 className="font-medium text-sm text-muted-foreground">Informações Básicas</h3>
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  {form.name || "Título do anúncio"}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Input
                     placeholder="Nome do produto"
