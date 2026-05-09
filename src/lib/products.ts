@@ -284,6 +284,8 @@ export async function incrementViews(id: string): Promise<void> {
 // ===== Site Settings =====
 export interface BenefitItem { icon: string; title: string; desc: string; }
 export interface TrustItem { icon: string; text: string; }
+export type CardFormat = "compact" | "modern" | "premium";
+
 export interface SiteSettings {
   whatsappNumber: string;
   heroTitle: string;
@@ -300,6 +302,7 @@ export interface SiteSettings {
   footerEmail: string;
   footerPhone: string;
   footerInstagram: string;
+  cardFormat: CardFormat;
 }
 
 const SETTINGS_KEY = "cellstore_settings";
@@ -329,6 +332,7 @@ const defaultSettings: SiteSettings = {
   footerEmail: "contato@mastercell.com.br",
   footerPhone: "(66) 99247-3929",
   footerInstagram: "@mastercellbg",
+  cardFormat: "compact",
 };
 
 export function getSettings(): SiteSettings {
@@ -396,13 +400,11 @@ export async function getProductVariants(productId: string): Promise<ProductVari
       .order("order_index", { ascending: true });
 
     if (error) {
-      console.error("Error fetching variants:", error);
       return [];
     }
 
     return data || [];
   } catch (err) {
-    console.error("Exception fetching variants:", err);
     return [];
   }
 }

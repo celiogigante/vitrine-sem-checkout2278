@@ -22,6 +22,8 @@ export default function AdminBrandsManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const [brandsPage, setBrandsPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const [form, setForm] = useState({
     name: "",
@@ -267,7 +269,7 @@ export default function AdminBrandsManager() {
                   </td>
                 </tr>
               ) : (
-                brands.map((brand) => (
+                brands.slice((brandsPage - 1) * itemsPerPage, brandsPage * itemsPerPage).map((brand) => (
                   <tr
                     key={brand.id}
                     className="border-b last:border-0 hover:bg-secondary/50"
@@ -308,6 +310,62 @@ export default function AdminBrandsManager() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {brands.length > itemsPerPage && (
+          <div className="flex items-center justify-between px-4 py-3 border-t bg-secondary/30">
+            <div className="text-sm text-muted-foreground">
+              Mostrando {(brandsPage - 1) * itemsPerPage + 1} a{" "}
+              {Math.min(brandsPage * itemsPerPage, brands.length)} de{" "}
+              {brands.length} marcas
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setBrandsPage(Math.max(1, brandsPage - 1))}
+                disabled={brandsPage === 1}
+              >
+                ← Anterior
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({
+                  length: Math.ceil(brands.length / itemsPerPage),
+                }).map((_, i) => (
+                  <Button
+                    key={i + 1}
+                    variant={
+                      brandsPage === i + 1 ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => setBrandsPage(i + 1)}
+                    className="w-8 h-8 p-0"
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setBrandsPage(
+                    Math.min(
+                      Math.ceil(brands.length / itemsPerPage),
+                      brandsPage + 1
+                    )
+                  )
+                }
+                disabled={
+                  brandsPage ===
+                  Math.ceil(brands.length / itemsPerPage)
+                }
+              >
+                Próximo →
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

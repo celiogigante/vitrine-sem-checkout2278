@@ -17,8 +17,9 @@ import AdminBrandsManager from "@/components/AdminBrandsManager";
 import AdminModelManager from "@/components/AdminModelManager";
 import AdminVariantManager from "@/components/AdminVariantManager";
 import ModelSelector from "@/components/ModelSelector";
-import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2 } from "lucide-react";
+import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2, Layers } from "lucide-react";
 import MigrationHelper from "@/components/MigrationHelper";
+import AdminCardFormatManager from "@/components/AdminCardFormatManager";
 import { useToast } from "@/hooks/use-toast";
 
 const CONDITIONS = ["novo", "seminovo", "excelente", "bom", "regular"];
@@ -47,7 +48,9 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "migracao">("insights");
+  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "formato" | "migracao">("insights");
+  const [productsPage, setProductsPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const [form, setForm] = useState({
     name: "",
@@ -372,6 +375,17 @@ export default function AdminDashboard() {
           Destaques
         </button>
         <button
+          onClick={() => setActiveTab("formato")}
+          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === "formato"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          Formato
+        </button>
+        <button
           onClick={() => setActiveTab("migracao")}
           className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
             activeTab === "migracao"
@@ -426,6 +440,13 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Formato Tab */}
+      {activeTab === "formato" && (
+        <div className="mb-8">
+          <AdminCardFormatManager />
+        </div>
+      )}
+
       {/* Migração Tab */}
       {activeTab === "migracao" && (
         <div className="mb-8">
@@ -444,7 +465,9 @@ export default function AdminDashboard() {
 
               {/* Básico */}
               <div className="space-y-2">
-                <h3 className="font-medium text-sm text-muted-foreground">Informações Básicas</h3>
+                <h3 className="font-medium text-sm text-muted-foreground">
+                  {form.name || "Título do anúncio"}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Input
                     placeholder="Nome do produto"
@@ -663,7 +686,7 @@ export default function AdminDashboard() {
                       </td>
                     </tr>
                   ) : (
-                    products.map((p) => (
+                    products.slice((productsPage - 1) * itemsPerPage, productsPage * itemsPerPage).map((p) => (
                       <tr
                         key={p.id}
                         className="border-b last:border-0 hover:bg-secondary/50"
@@ -728,6 +751,62 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {products.length > itemsPerPage && (
+              <div className="flex items-center justify-between px-4 py-3 border-t bg-secondary/30">
+                <div className="text-sm text-muted-foreground">
+                  Mostrando {(productsPage - 1) * itemsPerPage + 1} a{" "}
+                  {Math.min(productsPage * itemsPerPage, products.length)} de{" "}
+                  {products.length} produtos
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setProductsPage(Math.max(1, productsPage - 1))}
+                    disabled={productsPage === 1}
+                  >
+                    ← Anterior
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({
+                      length: Math.ceil(products.length / itemsPerPage),
+                    }).map((_, i) => (
+                      <Button
+                        key={i + 1}
+                        variant={
+                          productsPage === i + 1 ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setProductsPage(i + 1)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {i + 1}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setProductsPage(
+                        Math.min(
+                          Math.ceil(products.length / itemsPerPage),
+                          productsPage + 1
+                        )
+                      )
+                    }
+                    disabled={
+                      productsPage ===
+                      Math.ceil(products.length / itemsPerPage)
+                    }
+                  >
+                    Próximo →
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
