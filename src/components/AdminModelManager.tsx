@@ -15,6 +15,8 @@ export default function AdminModelManager() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [modelsPage, setModelsPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const [form, setForm] = useState({
     name: "",
@@ -114,7 +116,9 @@ export default function AdminModelManager() {
     setShowForm(false);
   };
 
-  const groupedByBrand = models.reduce((acc, model) => {
+  const paginatedModels = models.slice((modelsPage - 1) * itemsPerPage, modelsPage * itemsPerPage);
+
+  const groupedByBrand = paginatedModels.reduce((acc, model) => {
     if (!acc[model.brand]) acc[model.brand] = [];
     acc[model.brand].push(model);
     return acc;
@@ -226,6 +230,62 @@ export default function AdminModelManager() {
               </div>
             </div>
           ))}
+
+          {/* Pagination */}
+          {models.length > itemsPerPage && (
+            <div className="flex items-center justify-between px-4 py-3 border-t bg-secondary/30">
+              <div className="text-sm text-muted-foreground">
+                Mostrando {(modelsPage - 1) * itemsPerPage + 1} a{" "}
+                {Math.min(modelsPage * itemsPerPage, models.length)} de{" "}
+                {models.length} modelos
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setModelsPage(Math.max(1, modelsPage - 1))}
+                  disabled={modelsPage === 1}
+                >
+                  ← Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({
+                    length: Math.ceil(models.length / itemsPerPage),
+                  }).map((_, i) => (
+                    <Button
+                      key={i + 1}
+                      variant={
+                        modelsPage === i + 1 ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setModelsPage(i + 1)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {i + 1}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setModelsPage(
+                      Math.min(
+                        Math.ceil(models.length / itemsPerPage),
+                        modelsPage + 1
+                      )
+                    )
+                  }
+                  disabled={
+                    modelsPage ===
+                    Math.ceil(models.length / itemsPerPage)
+                  }
+                >
+                  Próximo →
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
