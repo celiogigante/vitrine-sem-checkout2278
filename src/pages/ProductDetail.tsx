@@ -220,12 +220,7 @@ const ProductDetail = () => {
                 className="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm md:text-base py-5 md:py-6 font-semibold shadow-lg transition-all active:scale-95"
                 onClick={() => {
                   handleWhatsAppClick();
-                  const variant = selectedVariant || variants[0];
-                  const variantInfo = variant ? ` (${[variant.color, variant.storage, variant.ram].filter(Boolean).join(', ')})` : '';
-                  window.open(
-                    `https://wa.me/5566992473929?text=${encodeURIComponent(`Olá, tenho interesse no *${product.name}${variantInfo}*, ainda está disponível?`)}`,
-                    "_blank"
-                  );
+                  window.open(getWhatsAppLink(product), "_blank");
                 }}
               >
                 <MessageCircle className="mr-2 h-4 md:h-5 w-4 md:w-5" /> Negociar pelo WhatsApp
