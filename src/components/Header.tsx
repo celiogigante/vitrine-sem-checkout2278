@@ -1,12 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, LogOut, Search } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/authContext";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { getSettings } from "@/lib/products";
+import { getSettings, getProducts, type Product } from "@/lib/products";
+import SearchAutoComplete from "@/components/SearchAutoComplete";
 
 interface MenuItem {
   id: string;
@@ -18,6 +18,7 @@ interface MenuItem {
 const Header = () => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
   const [s, setS] = useState(getSettings());
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const location = useLocation();
@@ -27,12 +28,13 @@ const Header = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/produtos?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery("");
-    }
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleProductSelect = (product: Product) => {
+    navigate(`/produto/${product.id}`);
+    setSearchQuery("");
   };
 
   useEffect(() => {
@@ -43,7 +45,17 @@ const Header = () => {
 
   useEffect(() => {
     loadMenuItems();
+    loadProducts();
   }, []);
+
+  const loadProducts = async () => {
+    try {
+      const productList = await getProducts();
+      setProducts(productList);
+    } catch (err) {
+      console.error("Erro ao carregar produtos:", err);
+    }
+  };
 
   const loadMenuItems = async () => {
     try {
@@ -80,23 +92,15 @@ const Header = () => {
         </Link>
 
         {/* Search bar - visible on all sizes */}
-        <form onSubmit={handleSearch} className="flex flex-1 max-w-xs md:max-w-xs">
-          <div className="relative w-full">
-            <Input
-              type="text"
-              placeholder="Buscar..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-4 pr-10 bg-white/10 border-yellow-300/30 text-white placeholder:text-white/50 focus:border-yellow-300 focus:bg-white/20 text-sm"
-            />
-            <button
-              type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-300 hover:text-yellow-200"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </div>
-        </form>
+        <div className="flex flex-1 max-w-xs md:max-w-xs">
+          <SearchAutoComplete
+            products={products}
+            value={searchQuery}
+            onChange={handleSearch}
+            placeholder="Buscar..."
+            onProductSelect={handleProductSelect}
+          />
+        </div>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-3 flex-shrink-0">
