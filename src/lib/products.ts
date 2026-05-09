@@ -734,7 +734,7 @@ export async function getWhatsAppClicksByModel(modelId: string): Promise<number>
   }
 }
 
-export async function getWhatsAppClicksByModel(): Promise<Array<{ modelId: string; modelName: string; totalClicks: number }>> {
+export async function getWhatsAppClicksRankingByModel(): Promise<Array<{ modelId: string; modelName: string; totalClicks: number }>> {
   try {
     // Get all clicks grouped by model_id
     const { data, error } = await supabase

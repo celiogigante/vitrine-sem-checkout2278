@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase, Product, Order, Customer } from "@/lib/supabase";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Loader2, TrendingUp, ShoppingCart, Users, Eye, Package, DollarSign, MessageCircle } from "lucide-react";
-import { getWhatsAppClickCount, getWhatsAppClicksByModel } from "@/lib/products";
+import { getWhatsAppClickCount, getWhatsAppClicksRankingByModel } from "@/lib/products";
 
 interface InsightsData {
   totalProducts: number;
@@ -146,7 +146,7 @@ export function Insights() {
       const whatsappClicks = await getWhatsAppClickCount();
 
       // Get WhatsApp clicks by model
-      const whatsappClicksByModel = await getWhatsAppClicksByModel();
+      const whatsappClicksByModel = await getWhatsAppClicksRankingByModel();
 
       setData({
         totalProducts,
