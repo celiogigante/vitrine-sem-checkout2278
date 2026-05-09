@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase, Product, Order, Customer } from "@/lib/supabase";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
 import { Loader2, TrendingUp, ShoppingCart, Users, Eye, Package, DollarSign, MessageCircle } from "lucide-react";
-import { getWhatsAppClickCount } from "@/lib/products";
+import { getWhatsAppClickCount, getWhatsAppClicksByModel } from "@/lib/products";
 
 interface InsightsData {
   totalProducts: number;
@@ -15,6 +15,7 @@ interface InsightsData {
   totalRevenue: number;
   topProducts: Product[];
   topProductsByClicks: Array<{ product_id: string; product_name: string; total_clicks: number }>;
+  whatsappClicksByModel: Array<{ modelId: string; modelName: string; totalClicks: number }>;
   conditionDistribution: Array<{ name: string; value: number }>;
   brandDistribution: Array<{ name: string; value: number }>;
   orderStatus: Array<{ status: string; count: number }>;
@@ -144,6 +145,9 @@ export function Insights() {
       // Get WhatsApp clicks count
       const whatsappClicks = await getWhatsAppClickCount();
 
+      // Get WhatsApp clicks by model
+      const whatsappClicksByModel = await getWhatsAppClicksByModel();
+
       setData({
         totalProducts,
         totalViews,
@@ -155,6 +159,7 @@ export function Insights() {
         totalRevenue,
         topProducts,
         topProductsByClicks,
+        whatsappClicksByModel,
         conditionDistribution,
         brandDistribution,
         orderStatus,
@@ -357,6 +362,26 @@ export function Insights() {
               <p className="text-sm text-muted-foreground">Nenhum clique registrado ainda</p>
             )}
           </div>
+        </div>
+
+        {/* WhatsApp Clicks by Model */}
+        <div className="rounded-lg border bg-card p-4">
+          <h3 className="font-semibold mb-4">Cliques no WhatsApp por Modelo</h3>
+          {data.whatsappClicksByModel.length > 0 ? (
+            <div className="space-y-2">
+              {data.whatsappClicksByModel.map((model, index) => (
+                <div key={model.modelId} className="flex items-center justify-between text-sm p-2 border-b last:border-b-0">
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-muted-foreground min-w-6">#{index + 1}</span>
+                    <span className="truncate">{model.modelName}</span>
+                  </div>
+                  <span className="font-bold">{model.totalClicks}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Nenhum modelo com cliques ainda</p>
+          )}
         </div>
 
         {/* Condition Distribution */}
