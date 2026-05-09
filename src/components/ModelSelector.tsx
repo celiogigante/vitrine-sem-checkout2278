@@ -25,13 +25,13 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
   const [isOpen, setIsOpen] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newModelName, setNewModelName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedModel = models.find(m => m.id === value);
 
   useEffect(() => {
     loadModels();
-  }, []);
+  }, [brand]);
 
   useEffect(() => {
     const filtered = models.filter(m => {
@@ -44,16 +44,19 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
 
   const loadModels = async () => {
     try {
+      setIsLoading(true);
       const { data } = await supabase
         .from("models")
         .select("id, name, brand")
         .order("name");
-      
+
       if (data) {
         setModels(data);
       }
     } catch (err) {
       console.error("Error loading models:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -174,7 +177,11 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
           ) : null}
 
           <div className="max-h-60 overflow-y-auto">
-            {filteredModels.length > 0 ? (
+            {isLoading ? (
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                Carregando modelos...
+              </div>
+            ) : filteredModels.length > 0 ? (
               filteredModels.map((model) => (
                 <button
                   key={model.id}
@@ -193,7 +200,7 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
               ))
             ) : (
               <div className="px-3 py-2 text-sm text-muted-foreground">
-                Nenhum modelo encontrado
+                Nenhum modelo encontrado {search && `para "${search}"`}
               </div>
             )}
           </div>
