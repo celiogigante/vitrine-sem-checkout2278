@@ -106,7 +106,7 @@ export default function AdminCardFormatManager() {
               </Card>
 
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-4">
-                <ProductCard product={sampleProduct} />
+                <ProductCard product={sampleProduct} formatOverride={format.id} />
               </div>
 
               <Button

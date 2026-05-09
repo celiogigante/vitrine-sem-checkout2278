@@ -11,9 +11,9 @@ import {
   PremiumCardFormat,
 } from "./ProductCardFormats";
 
-const ProductCard = ({ product }: { product: Product }) => {
+const ProductCard = ({ product, formatOverride }: { product: Product; formatOverride?: CardFormat }) => {
   const [variantCount, setVariantCount] = useState(0);
-  const [cardFormat, setCardFormat] = useState<CardFormat>("compact");
+  const [cardFormat, setCardFormat] = useState<CardFormat>(formatOverride || "compact");
 
   useEffect(() => {
     const loadVariants = async () => {
@@ -24,6 +24,11 @@ const ProductCard = ({ product }: { product: Product }) => {
   }, [product.id]);
 
   useEffect(() => {
+    if (formatOverride) {
+      setCardFormat(formatOverride);
+      return;
+    }
+
     const settings = getSettings();
     setCardFormat(settings.cardFormat);
 
@@ -34,7 +39,7 @@ const ProductCard = ({ product }: { product: Product }) => {
 
     window.addEventListener("settings-updated", handleSettingsUpdate);
     return () => window.removeEventListener("settings-updated", handleSettingsUpdate);
-  }, []);
+  }, [formatOverride]);
 
   const formatProps = { product, variantCount };
 
