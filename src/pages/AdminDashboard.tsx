@@ -17,8 +17,9 @@ import AdminBrandsManager from "@/components/AdminBrandsManager";
 import AdminModelManager from "@/components/AdminModelManager";
 import AdminVariantManager from "@/components/AdminVariantManager";
 import ModelSelector from "@/components/ModelSelector";
-import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2 } from "lucide-react";
+import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2, Layers } from "lucide-react";
 import MigrationHelper from "@/components/MigrationHelper";
+import AdminCardFormatManager from "@/components/AdminCardFormatManager";
 import { useToast } from "@/hooks/use-toast";
 
 const CONDITIONS = ["novo", "seminovo", "excelente", "bom", "regular"];
@@ -47,7 +48,7 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "migracao">("insights");
+  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "formato" | "migracao">("insights");
 
   const [form, setForm] = useState({
     name: "",
@@ -372,6 +373,17 @@ export default function AdminDashboard() {
           Destaques
         </button>
         <button
+          onClick={() => setActiveTab("formato")}
+          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === "formato"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          Formato
+        </button>
+        <button
           onClick={() => setActiveTab("migracao")}
           className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
             activeTab === "migracao"
@@ -423,6 +435,13 @@ export default function AdminDashboard() {
       {activeTab === "destaques" && (
         <div className="mb-8">
           <AdminProductHighlights />
+        </div>
+      )}
+
+      {/* Formato Tab */}
+      {activeTab === "formato" && (
+        <div className="mb-8">
+          <AdminCardFormatManager />
         </div>
       )}
 
