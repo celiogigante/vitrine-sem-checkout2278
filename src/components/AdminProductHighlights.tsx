@@ -170,90 +170,88 @@ export default function AdminProductHighlights() {
         <p className="text-sm text-muted-foreground">
           Pesquise um produto para adicionar ao carrossel de destaques do hero.
         </p>
-        <div className="space-y-3">
-          <div className="relative" ref={dropdownRef}>
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-            <Input
-              placeholder="Pesquisar por nome, marca ou modelo..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              className="pl-9"
-            />
+        <div className="relative" ref={dropdownRef}>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+          <Input
+            placeholder="Pesquisar por nome, marca ou modelo..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            className="pl-9"
+          />
 
-            {/* Suggestions dropdown */}
-            {showSuggestions && availableProducts.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 border rounded-lg bg-card shadow-lg z-50">
-                <div className="max-h-64 overflow-y-auto">
-                  {filteredProducts.length === 0 ? (
-                    <div className="p-3 text-sm text-muted-foreground text-center">
-                      Nenhum produto encontrado
-                    </div>
-                  ) : (
-                    filteredProducts.map((p) => (
-                      <label
-                        key={p.id}
-                        className="flex items-start gap-3 px-3 py-2 hover:bg-secondary/50 border-b last:border-0 transition-colors cursor-pointer"
-                      >
-                        <Checkbox
-                          checked={selectedProductIds.has(p.id)}
-                          onCheckedChange={(checked) => {
-                            const newSet = new Set(selectedProductIds);
-                            if (checked) {
-                              newSet.add(p.id);
-                            } else {
-                              newSet.delete(p.id);
-                            }
-                            setSelectedProductIds(newSet);
-                          }}
-                          className="mt-1"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm">{p.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {p.brand} • R$ {p.price.toLocaleString("pt-BR")}
-                          </div>
+          {/* Suggestions dropdown */}
+          {showSuggestions && availableProducts.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 border rounded-lg bg-card shadow-lg z-50">
+              <div className="max-h-64 overflow-y-auto">
+                {filteredProducts.length === 0 ? (
+                  <div className="p-3 text-sm text-muted-foreground text-center">
+                    Nenhum produto encontrado
+                  </div>
+                ) : (
+                  filteredProducts.map((p) => (
+                    <label
+                      key={p.id}
+                      className="flex items-start gap-3 px-3 py-2 hover:bg-secondary/50 border-b last:border-0 transition-colors cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={selectedProductIds.has(p.id)}
+                        onCheckedChange={(checked) => {
+                          const newSet = new Set(selectedProductIds);
+                          if (checked) {
+                            newSet.add(p.id);
+                          } else {
+                            newSet.delete(p.id);
+                          }
+                          setSelectedProductIds(newSet);
+                        }}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm">{p.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {p.brand} • R$ {p.price.toLocaleString("pt-BR")}
                         </div>
-                      </label>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            {showSuggestions && availableProducts.length === 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 border rounded-lg bg-card shadow-lg z-50">
-                <div className="p-3 text-sm text-muted-foreground text-center">
-                  Todos os produtos já são destaques
-                </div>
-              </div>
-            )}
-          </div>
-
-          {selectedProductIds.size > 0 && (
-            <div className="bg-secondary/50 p-3 rounded-lg">
-              <div className="text-sm font-medium">
-                {selectedProductIds.size} produto(s) selecionado(s)
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Clique em "Adicionar Selecionados" para confirmar
+                      </div>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
           )}
 
-          <Button
-            onClick={handleAddHighlight}
-            disabled={selectedProductIds.size === 0}
-            className="w-full"
-            size="lg"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Adicionar Selecionados ({selectedProductIds.size})
-          </Button>
+          {showSuggestions && availableProducts.length === 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 border rounded-lg bg-card shadow-lg z-50">
+              <div className="p-3 text-sm text-muted-foreground text-center">
+                Todos os produtos já são destaques
+              </div>
+            </div>
+          )}
         </div>
+
+        {selectedProductIds.size > 0 && (
+          <div className="bg-secondary/50 p-3 rounded-lg">
+            <div className="text-sm font-medium">
+              {selectedProductIds.size} produto(s) selecionado(s)
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Clique em "Adicionar Selecionados" para confirmar
+            </div>
+          </div>
+        )}
+
+        <Button
+          onClick={handleAddHighlight}
+          disabled={selectedProductIds.size === 0}
+          className="w-full"
+          size="lg"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar Selecionados ({selectedProductIds.size})
+        </Button>
       </div>
 
       {/* Highlights list */}
