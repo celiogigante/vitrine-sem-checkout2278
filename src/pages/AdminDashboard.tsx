@@ -464,6 +464,26 @@ export default function AdminDashboard() {
       {/* Products Tab */}
       {activeTab === "produtos" && (
         <>
+          {/* Stats Cards */}
+          <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="rounded-lg border bg-card p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Total de Produtos</p>
+              <p className="text-2xl font-bold">{products.length}</p>
+            </div>
+            <div className="rounded-lg border bg-card p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Disponíveis</p>
+              <p className="text-2xl font-bold text-green-600">{products.filter(p => p.status === "disponivel").length}</p>
+            </div>
+            <div className="rounded-lg border bg-card p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Vendidos</p>
+              <p className="text-2xl font-bold text-red-600">{products.filter(p => p.status === "vendido").length}</p>
+            </div>
+            <div className="rounded-lg border bg-card p-4 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Reservados</p>
+              <p className="text-2xl font-bold text-yellow-600">{products.filter(p => p.status === "reservado").length}</p>
+            </div>
+          </div>
+
           {/* Filters */}
           <div className="mb-6 rounded-lg border bg-card p-4 space-y-4">
             <div className="flex items-center justify-between">
