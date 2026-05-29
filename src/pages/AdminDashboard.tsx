@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { getProducts, updateProduct, deleteProduct, addProduct, BRANDS, getModels, type Product, type Model } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AutocompleteInput } from "@/components/ui/autocomplete";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +78,27 @@ export default function AdminDashboard() {
     promotion: false,
     is_on_request: false,
   });
+
+  // Obter sugestões de especificações a partir dos produtos existentes
+  const getSpecSuggestions = (key: string): string[] => {
+    const uniqueValues = new Set<string>();
+    products.forEach((product) => {
+      if (product.specs && product.specs[key]) {
+        const val = product.specs[key].trim();
+        if (val) {
+          uniqueValues.add(val);
+        }
+      }
+    });
+    return Array.from(uniqueValues).sort((a, b) => {
+      const numA = parseFloat(a.replace(/[^0-9.]/g, ""));
+      const numB = parseFloat(b.replace(/[^0-9.]/g, ""));
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB;
+      }
+      return a.localeCompare(b);
+    });
+  };
 
   useEffect(() => {
     loadProducts();
@@ -709,11 +731,12 @@ export default function AdminDashboard() {
                 <h3 className="font-medium text-sm text-muted-foreground">Especificações</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {["RAM", "CHIP", "TELA", "BATERIA", "CÂMERA", "ARMAZENAMENTO"].map((key) => (
-                    <Input
+                    <AutocompleteInput
                       key={key}
                       placeholder={key}
+                      suggestions={getSpecSuggestions(key)}
                       value={form.specs[key] || ""}
-                      onChange={(e) => setForm({ ...form, specs: { ...form.specs, [key]: e.target.value } })}
+                      onValueChange={(val) => setForm({ ...form, specs: { ...form.specs, [key]: val } })}
                     />
                   ))}
                 </div>
