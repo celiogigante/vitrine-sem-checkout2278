@@ -9,11 +9,12 @@ interface Model {
   id: string;
   name: string;
   brand: string;
+  specs?: Record<string, string>;
 }
 
 interface ModelSelectorProps {
   value?: string;
-  onSelect: (modelId: string) => void;
+  onSelect: (modelId: string, modelSpecs?: Record<string, string>) => void;
   brand?: string;
 }
 
@@ -47,7 +48,7 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
       setIsLoading(true);
       const { data } = await supabase
         .from("models")
-        .select("id, name, brand")
+        .select("id, name, brand, specs")
         .order("name");
 
       if (data) {
@@ -86,7 +87,7 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
 
       if (data) {
         setModels([...models, data]);
-        onSelect(data.id);
+        onSelect(data.id, data.specs);
         setNewModelName("");
         setShowNewForm(false);
         setIsOpen(false);
@@ -186,7 +187,7 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
                 <button
                   key={model.id}
                   onClick={() => {
-                    onSelect(model.id);
+                    onSelect(model.id, model.specs);
                     setIsOpen(false);
                     setSearch("");
                   }}

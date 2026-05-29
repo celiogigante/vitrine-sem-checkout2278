@@ -40,37 +40,55 @@ export function Insights() {
       setIsLoading(true);
 
       // Load products
-      const { data: products, error: productsError } = await supabase
-        .from("products")
-        .select("*");
+      let products = [];
+      try {
+        const { data: productsData, error: productsError } = await supabase
+          .from("products")
+          .select("*");
 
-      if (productsError) {
-        console.error("Error loading products:", productsError);
-        throw productsError;
+        if (productsError) {
+          console.error("Error loading products:", productsError);
+        } else if (productsData) {
+          products = productsData;
+        }
+      } catch (err) {
+        console.error("Exception loading products:", err);
       }
 
       // Load customers with error handling
       let customerList = [];
-      const { data: customers } = await supabase
-        .from("customers")
-        .select("*");
-      if (customers) customerList = customers;
+      try {
+        const { data: customers } = await supabase
+          .from("customers")
+          .select("*");
+        if (customers) customerList = customers;
+      } catch (err) {
+        console.error("Error loading customers:", err);
+      }
 
       // Load orders with error handling
       let orderList = [];
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("*");
-      if (orders) orderList = orders;
+      try {
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("*");
+        if (orders) orderList = orders;
+      } catch (err) {
+        console.error("Error loading orders:", err);
+      }
 
       // Load product clicks with error handling
       let clickList: Array<{ product_id: string }> = [];
-      const { data: clicks } = await supabase
-        .from("product_clicks")
-        .select("product_id");
+      try {
+        const { data: clicks } = await supabase
+          .from("product_clicks")
+          .select("product_id");
 
-      if (clicks) {
-        clickList = (clicks || []) as Array<{ product_id: string }>;
+        if (clicks) {
+          clickList = (clicks || []) as Array<{ product_id: string }>;
+        }
+      } catch (err) {
+        console.error("Error loading product clicks:", err);
       }
 
       const productList = (products || []) as Product[];
