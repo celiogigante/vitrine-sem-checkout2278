@@ -631,7 +631,13 @@ export default function AdminDashboard() {
                   </Select>
                   <ModelSelector
                     value={form.model_id}
-                    onSelect={(modelId) => setForm({ ...form, model_id: modelId || undefined })}
+                    onSelect={(modelId, modelSpecs) => {
+                      const newForm = { ...form, model_id: modelId || undefined };
+                      if (modelSpecs) {
+                        newForm.specs = { ...newForm.specs, ...modelSpecs };
+                      }
+                      setForm(newForm);
+                    }}
                     brand={form.brand}
                   />
                 </div>

@@ -35,6 +35,7 @@ export interface Model {
   name: string;
   brand: string;
   description?: string;
+  specs?: Record<string, string>;
   views: number;
   created_at: string;
   updated_at: string;

@@ -13,7 +13,7 @@ interface Model {
 
 interface ModelSelectorProps {
   value?: string;
-  onSelect: (modelId: string) => void;
+  onSelect: (modelId: string, modelSpecs?: Record<string, string>) => void;
   brand?: string;
 }
 
@@ -86,7 +86,7 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
 
       if (data) {
         setModels([...models, data]);
-        onSelect(data.id);
+        onSelect(data.id, data.specs);
         setNewModelName("");
         setShowNewForm(false);
         setIsOpen(false);
@@ -186,7 +186,7 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
                 <button
                   key={model.id}
                   onClick={() => {
-                    onSelect(model.id);
+                    onSelect(model.id, model.specs);
                     setIsOpen(false);
                     setSearch("");
                   }}

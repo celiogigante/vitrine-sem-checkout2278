@@ -8,6 +8,7 @@ export interface Model {
   name: string;
   brand: string;
   description?: string;
+  specs?: Record<string, string>;
   views: number;
   createdAt: string;
 }
@@ -523,6 +524,7 @@ export async function getModels(): Promise<Model[]> {
       name: m.name,
       brand: m.brand,
       description: m.description,
+      specs: m.specs || {},
       views: m.views || 0,
       createdAt: m.created_at,
     }));
@@ -550,6 +552,7 @@ export async function getModelsByBrand(brand: string): Promise<Model[]> {
       name: m.name,
       brand: m.brand,
       description: m.description,
+      specs: m.specs || {},
       views: m.views || 0,
       createdAt: m.created_at,
     }));
@@ -570,6 +573,7 @@ export async function addModel(model: Omit<Model, "id" | "views" | "createdAt">)
           name: model.name,
           brand: model.brand,
           description: model.description,
+          specs: model.specs || {},
           views: 0,
           created_at: now,
           updated_at: now,
@@ -588,6 +592,7 @@ export async function addModel(model: Omit<Model, "id" | "views" | "createdAt">)
       name: data.name,
       brand: data.brand,
       description: data.description,
+      specs: data.specs || {},
       views: data.views || 0,
       createdAt: data.created_at,
     } : null;
@@ -604,6 +609,7 @@ export async function updateModel(id: string, model: Partial<Model>): Promise<Mo
     if (model.name !== undefined) updateData.name = model.name;
     if (model.brand !== undefined) updateData.brand = model.brand;
     if (model.description !== undefined) updateData.description = model.description;
+    if (model.specs !== undefined) updateData.specs = model.specs;
     if (model.views !== undefined) updateData.views = model.views;
 
     updateData.updated_at = new Date().toISOString();
@@ -625,6 +631,7 @@ export async function updateModel(id: string, model: Partial<Model>): Promise<Mo
       name: data.name,
       brand: data.brand,
       description: data.description,
+      specs: data.specs || {},
       views: data.views || 0,
       createdAt: data.created_at,
     } : undefined;
