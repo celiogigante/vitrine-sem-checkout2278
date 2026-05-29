@@ -9,6 +9,7 @@ interface Model {
   id: string;
   name: string;
   brand: string;
+  specs?: Record<string, string>;
 }
 
 interface ModelSelectorProps {
@@ -47,7 +48,7 @@ export default function ModelSelector({ value, onSelect, brand }: ModelSelectorP
       setIsLoading(true);
       const { data } = await supabase
         .from("models")
-        .select("id, name, brand")
+        .select("id, name, brand, specs")
         .order("name");
 
       if (data) {
