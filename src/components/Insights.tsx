@@ -40,13 +40,19 @@ export function Insights() {
       setIsLoading(true);
 
       // Load products
-      const { data: products, error: productsError } = await supabase
-        .from("products")
-        .select("*");
+      let products = [];
+      try {
+        const { data: productsData, error: productsError } = await supabase
+          .from("products")
+          .select("*");
 
-      if (productsError) {
-        console.error("Error loading products:", productsError);
-        throw productsError;
+        if (productsError) {
+          console.error("Error loading products:", productsError);
+        } else if (productsData) {
+          products = productsData;
+        }
+      } catch (err) {
+        console.error("Exception loading products:", err);
       }
 
       // Load customers with error handling
