@@ -842,3 +842,52 @@ export async function getWhatsAppClicksRankingByModel(): Promise<Array<{ modelId
     return [];
   }
 }
+
+export async function populateModelSpecsFromProducts(): Promise<void> {
+  try {
+    const products = await getProducts();
+    const models = await getModels();
+
+    const specsByModel = new Map<string, Map<string, Map<string, number>>>();
+
+    products.forEach(product => {
+      if (!product.modelId) return;
+
+      if (!specsByModel.has(product.modelId)) {
+        specsByModel.set(product.modelId, new Map());
+      }
+
+      const modelSpecs = specsByModel.get(product.modelId)!;
+
+      Object.entries(product.specs).forEach(([key, value]) => {
+        if (!modelSpecs.has(key)) {
+          modelSpecs.set(key, new Map());
+        }
+        const valueMap = modelSpecs.get(key)!;
+        valueMap.set(value, (valueMap.get(value) || 0) + 1);
+      });
+    });
+
+    for (const model of models) {
+      if (!specsByModel.has(model.id)) continue;
+
+      const modelSpecs = specsByModel.get(model.id)!;
+      const commonSpecs: Record<string, string> = {};
+
+      modelSpecs.forEach((valueMap, specKey) => {
+        const mostCommon = Array.from(valueMap.entries())
+          .sort((a, b) => b[1] - a[1])[0];
+
+        if (mostCommon) {
+          commonSpecs[specKey] = mostCommon[0];
+        }
+      });
+
+      if (Object.keys(commonSpecs).length > 0) {
+        await updateModel(model.id, { specs: commonSpecs });
+      }
+    }
+  } catch (err) {
+    console.error("Exception populating model specs:", err);
+  }
+}

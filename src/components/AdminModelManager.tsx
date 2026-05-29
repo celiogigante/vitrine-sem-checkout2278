@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { getModels, addModel, updateModel, deleteModel, BRANDS, type Model } from "@/lib/products";
+import { getModels, addModel, updateModel, deleteModel, BRANDS, type Model, populateModelSpecsFromProducts } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Pencil, X } from "lucide-react";
+import { Trash2, Plus, Pencil, X, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminModelManager() {
@@ -28,6 +28,7 @@ export default function AdminModelManager() {
     description: "",
     specs: {} as Record<string, string>,
   });
+  const [isAutoPopulating, setIsAutoPopulating] = useState(false);
 
   useEffect(() => {
     loadModels();
@@ -124,6 +125,27 @@ export default function AdminModelManager() {
     setShowForm(false);
   };
 
+  const handleAutoPopulateSpecs = async () => {
+    if (!confirm("Isso vai analisar todos os produtos e pré-preencher as specs mais comuns para cada modelo. Continuar?")) {
+      return;
+    }
+
+    setIsAutoPopulating(true);
+    try {
+      await populateModelSpecsFromProducts();
+      toast({ title: "Especificações atualizadas com sucesso!" });
+      await loadModels();
+    } catch (err) {
+      console.error("Error auto-populating specs:", err);
+      toast({
+        title: "Erro ao atualizar especificações",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAutoPopulating(false);
+    }
+  };
+
   const filtered = models.filter(m => {
     const matchSearch = filterSearch === "" || m.name.toLowerCase().includes(filterSearch.toLowerCase()) || m.brand.toLowerCase().includes(filterSearch.toLowerCase());
     const matchBrand = filterBrand === "all" || m.brand === filterBrand;
@@ -146,10 +168,21 @@ export default function AdminModelManager() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Modelos</h2>
         {!showForm && (
-          <Button onClick={() => setShowForm(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Novo Modelo
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleAutoPopulateSpecs}
+              variant="outline"
+              disabled={isAutoPopulating}
+              className="gap-2"
+            >
+              <Wand2 className="w-4 h-4" />
+              {isAutoPopulating ? "Analisando..." : "Auto-popular Specs"}
+            </Button>
+            <Button onClick={() => setShowForm(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Modelo
+            </Button>
+          </div>
         )}
       </div>
 
