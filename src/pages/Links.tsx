@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { getSettings } from "@/lib/products";
-import { Button } from "@/components/ui/button";
-import { Instagram, MessageCircle, MapPin, Globe, Copy, Check } from "lucide-react";
+import { Instagram, MessageCircle, MapPin, Globe } from "lucide-react";
 
 interface Settings {
   footerInstagram?: string;
@@ -10,8 +9,6 @@ interface Settings {
 
 export default function Links() {
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [copiedLink, setCopiedLink] = useState<string | null>(null);
-
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -64,12 +61,6 @@ export default function Links() {
     },
   ];
 
-  const handleCopy = (link: string) => {
-    navigator.clipboard.writeText(link);
-    setCopiedLink(link);
-    setTimeout(() => setCopiedLink(null), 2000);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-black to-gray-900 text-white">
       {/* Header */}
@@ -87,79 +78,46 @@ export default function Links() {
       </div>
 
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-12 md:py-20 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">
+      <div className="container mx-auto px-4 py-6 md:py-12 text-center">
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 text-yellow-300">
           Master Cell
         </h1>
-        <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
-          Seus links para entrar em contato conosco e conhecer nossos produtos
+        <p className="text-gray-300 text-sm md:text-base max-w-2xl mx-auto">
+          Acesse nossos links e contatos
         </p>
       </div>
 
       {/* Links Grid */}
-      <div className="container mx-auto px-4 py-8 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+      <div className="container mx-auto px-2 md:px-4 pb-16">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-6 max-w-2xl mx-auto">
           {links.map((link) => {
             const Icon = link.icon;
             return (
               <button
                 key={link.id}
                 onClick={() => window.open(link.url, "_blank")}
-                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br hover:border-white/20 transition-all duration-300 shadow-xl hover:shadow-2xl"
+                className="group relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br hover:border-yellow-300 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 {/* Background gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${link.color} opacity-10 group-hover:opacity-20 transition-opacity duration-300`} />
-                
+                <div className={`absolute inset-0 bg-gradient-to-br ${link.color} opacity-5 group-hover:opacity-10 transition-opacity duration-300`} />
+
                 {/* Hover shine effect */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full duration-700" />
 
                 {/* Content */}
-                <div className="relative p-6 md:p-8 flex flex-col items-center text-center gap-3">
-                  <Icon className="w-12 h-12 md:w-16 md:h-16 group-hover:scale-110 transition-transform duration-300" />
-                  <div>
-                    <h3 className="text-xl md:text-2xl font-bold mb-1">{link.label}</h3>
-                    <p className="text-gray-300 text-sm md:text-base">{link.description}</p>
+                <div className="relative p-3 md:p-6 flex flex-col items-center text-center gap-2 md:gap-3">
+                  <Icon className="w-8 h-8 md:w-12 md:h-12 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="min-h-12 md:min-h-auto">
+                    <h3 className="text-sm md:text-lg font-bold mb-0.5 md:mb-1 leading-tight">{link.label}</h3>
+                    <p className="text-gray-300 text-xs md:text-sm leading-tight">{link.description}</p>
                   </div>
-                  <div className="mt-4 text-yellow-400 text-sm font-semibold group-hover:text-yellow-300 transition-colors">
+                  <div className="text-yellow-300 text-xs md:text-sm font-semibold group-hover:text-yellow-200 transition-colors">
                     Abrir →
                   </div>
                 </div>
               </button>
             );
           })}
-        </div>
-      </div>
-
-      {/* Copy Links Section */}
-      <div className="container mx-auto px-4 py-12 border-t border-white/10">
-        <h2 className="text-2xl font-bold mb-8 text-center">Copiar Links</h2>
-        <div className="space-y-3 max-w-2xl mx-auto">
-          {links.map((link) => (
-            <div
-              key={link.id}
-              className="flex items-center justify-between bg-gray-800/50 hover:bg-gray-800 border border-white/10 rounded-lg p-4 transition-colors"
-            >
-              <div className="text-sm text-gray-300 truncate flex-1">{link.label}</div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleCopy(link.url)}
-                className="ml-2 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10"
-              >
-                {copiedLink === link.url ? (
-                  <>
-                    <Check className="w-4 h-4 mr-1" />
-                    Copiado
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-1" />
-                    Copiar
-                  </>
-                )}
-              </Button>
-            </div>
-          ))}
         </div>
       </div>
 
