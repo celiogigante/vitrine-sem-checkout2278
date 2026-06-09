@@ -9,6 +9,7 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
+import Links from "./pages/Links";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/produto/:id" element={<ProductDetail />} />
               <Route path="/produtos/:id" element={<ProductDetail />} />
             </Route>
+            <Route path="/links" element={<Links />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route
               path="/admin"

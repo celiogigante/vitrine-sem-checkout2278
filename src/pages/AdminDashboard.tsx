@@ -18,9 +18,10 @@ import AdminBrandsManager from "@/components/AdminBrandsManager";
 import AdminModelManager from "@/components/AdminModelManager";
 import AdminVariantManager from "@/components/AdminVariantManager";
 import ModelSelector from "@/components/ModelSelector";
-import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2, Layers } from "lucide-react";
+import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2, Layers, QrCode } from "lucide-react";
 import MigrationHelper from "@/components/MigrationHelper";
 import AdminCardFormatManager from "@/components/AdminCardFormatManager";
+import AdminQRCodeManager from "@/components/AdminQRCodeManager";
 import { useToast } from "@/hooks/use-toast";
 
 const CONDITIONS = ["novo", "seminovo", "excelente", "bom", "regular"];
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "formato" | "migracao">("insights");
+  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "formato" | "qrcode" | "migracao">("insights");
   const [productsPage, setProductsPage] = useState(1);
   const [itemsPerPage] = useState(50);
 
@@ -415,6 +416,17 @@ export default function AdminDashboard() {
           Formato
         </button>
         <button
+          onClick={() => setActiveTab("qrcode")}
+          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === "qrcode"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <QrCode className="h-4 w-4" />
+          QR Code
+        </button>
+        <button
           onClick={() => setActiveTab("migracao")}
           className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
             activeTab === "migracao"
@@ -473,6 +485,13 @@ export default function AdminDashboard() {
       {activeTab === "formato" && (
         <div className="mb-8">
           <AdminCardFormatManager />
+        </div>
+      )}
+
+      {/* QR Code Tab */}
+      {activeTab === "qrcode" && (
+        <div className="mb-8">
+          <AdminQRCodeManager />
         </div>
       )}
 
