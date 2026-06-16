@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useErrorLogger } from "@/hooks/useErrorLogger";
 import { Upload, X, Loader2, Video, Image as ImageIcon, AlertCircle } from "lucide-react";
 
 interface MediaUploadProps {
@@ -33,6 +34,7 @@ export const ImageUpload = ({
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { logCustomError } = useErrorLogger();
 
   // Validar se a URL da imagem está acessível
   const validateImageUrl = async (url: string): Promise<boolean> => {
@@ -139,17 +141,26 @@ export const ImageUpload = ({
     } catch (err) {
       console.error("Upload failed after retries:", err);
 
-      // Tentar limpar o arquivo se foi parcialmente uploadado
-      if (uploadedUrl) {
-        await deleteImageFromStorage(uploadedUrl);
-      }
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
+
+      // Log do erro para monitoramento
+      await logCustomError(
+        `Falha no upload de imagem: ${errorMessage}`,
+        "high",
+        {
+          productId,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          attempts: MAX_RETRIES,
+        }
+      );
 
       toast({
         title: "Erro ao enviar imagem",
         description:
-          err instanceof Error
-            ? err.message
-            : "Falha após múltiplas tentativas. Verifique sua conexão.",
+          errorMessage ||
+          "Falha após múltiplas tentativas. Verifique sua conexão.",
         variant: "destructive",
       });
     } finally {
