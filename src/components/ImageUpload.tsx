@@ -3,7 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, Loader2, Video, Image as ImageIcon } from "lucide-react";
+import { useErrorLogger } from "@/hooks/useErrorLogger";
+import { Upload, X, Loader2, Video, Image as ImageIcon, AlertCircle } from "lucide-react";
 
 interface MediaUploadProps {
   onImagesUrls: (urls: string[]) => void;
@@ -15,6 +16,9 @@ interface MediaUploadProps {
 
 const MAX_IMAGES = 5;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1s
+const URL_VALIDATION_TIMEOUT = 5000; // 5s
 
 export const ImageUpload = ({
   onImagesUrls,
@@ -27,8 +31,31 @@ export const ImageUpload = ({
   const [images, setImages] = useState<string[]>(currentImages);
   const [video, setVideo] = useState<string>(currentVideo);
   const [videoInputValue, setVideoInputValue] = useState<string>(currentVideo);
+  const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { logCustomError } = useErrorLogger();
+
+  // Validar se a URL da imagem está acessível
+  const validateImageUrl = async (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const timeout = setTimeout(() => {
+        img.onerror = img.onload = null;
+        resolve(false);
+      }, URL_VALIDATION_TIMEOUT);
+
+      img.onload = () => {
+        clearTimeout(timeout);
+        resolve(true);
+      };
+      img.onerror = () => {
+        clearTimeout(timeout);
+        resolve(false);
+      };
+      img.src = url;
+    });
+  };
 
   const uploadImage = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -49,39 +76,99 @@ export const ImageUpload = ({
       return;
     }
 
+    const fileKey = `${Date.now()}_${file.name}`;
+    setUploadingFiles((prev) => new Set(prev).add(fileKey));
     setIsUploading(true);
 
+    let uploadedUrl: string | null = null;
+
     try {
-      const fileName = `${Date.now()}_${file.name}`;
+      const fileName = fileKey;
       const filePath = productId
         ? `products/${productId}/images/${fileName}`
         : `products/images/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("products")
-        .upload(filePath, file, { upsert: true });
+      let lastError: Error | null = null;
 
-      if (uploadError) throw uploadError;
+      // Retry com exponential backoff
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from("products")
+            .upload(filePath, file, { upsert: true });
 
-      // Gerar URL pública
-      const { data } = supabase.storage
-        .from("products")
-        .getPublicUrl(filePath);
+          if (uploadError) throw uploadError;
 
-      if (data?.publicUrl) {
-        const newImages = [...images, data.publicUrl];
-        setImages(newImages);
-        onImagesUrls(newImages);
-        toast({ title: "Imagem adicionada com sucesso!" });
+          // Gerar URL pública
+          const { data } = supabase.storage
+            .from("products")
+            .getPublicUrl(filePath);
+
+          uploadedUrl = data?.publicUrl || null;
+
+          if (!uploadedUrl) throw new Error("Falha ao gerar URL pública");
+
+          // Validar se a URL está realmente acessível
+          const isAccessible = await validateImageUrl(uploadedUrl);
+
+          if (!isAccessible) {
+            throw new Error("Imagem não está acessível após upload");
+          }
+
+          // Sucesso!
+          const newImages = [...images, uploadedUrl];
+          setImages(newImages);
+          onImagesUrls(newImages);
+          toast({ title: "Imagem adicionada com sucesso!" });
+          break;
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error("Erro desconhecido");
+          console.warn(`Upload attempt ${attempt}/${MAX_RETRIES} failed:`, lastError.message);
+
+          if (attempt < MAX_RETRIES) {
+            // Aguardar antes de retry (exponential backoff)
+            await new Promise((resolve) =>
+              setTimeout(resolve, RETRY_DELAY * attempt)
+            );
+          }
+        }
+      }
+
+      // Se todas as tentativas falharam
+      if (!uploadedUrl && lastError) {
+        throw lastError;
       }
     } catch (err) {
-      console.error("Upload error:", err);
+      console.error("Upload failed after retries:", err);
+
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
+
+      // Log do erro para monitoramento
+      await logCustomError(
+        `Falha no upload de imagem: ${errorMessage}`,
+        "high",
+        {
+          productId,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          attempts: MAX_RETRIES,
+        }
+      );
+
       toast({
         title: "Erro ao enviar imagem",
-        description: err instanceof Error ? err.message : "Tente novamente",
+        description:
+          errorMessage ||
+          "Falha após múltiplas tentativas. Verifique sua conexão.",
         variant: "destructive",
       });
     } finally {
+      setUploadingFiles((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(fileKey);
+        return newSet;
+      });
       setIsUploading(false);
     }
   };
@@ -117,6 +204,8 @@ export const ImageUpload = ({
     const newImages = images.filter((_, i) => i !== index);
     setImages(newImages);
     onImagesUrls(newImages);
+    // Nota: Arquivo não é deletado do storage aqui
+    // Será deletado apenas quando o produto for deletado completamente
   };
 
   const removeVideo = () => {
@@ -147,9 +236,19 @@ export const ImageUpload = ({
           disabled={isUploading || images.length >= MAX_IMAGES}
           className="w-full"
         >
-          <ImageIcon className="mr-2 h-4 w-4" />
+          {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {!isUploading && <ImageIcon className="mr-2 h-4 w-4" />}
           {isUploading ? "Enviando..." : images.length >= MAX_IMAGES ? "Máximo atingido" : "Adicionar imagem"}
         </Button>
+
+        {uploadingFiles.size > 0 && (
+          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800">
+              Enviando {uploadingFiles.size} imagem(ns)... Tentativas automáticas em caso de falha.
+            </p>
+          </div>
+        )}
 
         {images.length > 0 && (
           <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">

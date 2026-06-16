@@ -249,6 +249,36 @@ export async function updateProduct(
  */
 export async function deleteProduct(id: string): Promise<boolean> {
   try {
+    // Buscar produto antes de deletar para obter as imagens
+    const { data: product, error: fetchError } = await supabase
+      .from("products")
+      .select("images")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching product for deletion:", fetchError);
+    }
+
+    // Deletar imagens do storage se existirem
+    if (product?.images && Array.isArray(product.images)) {
+      for (const imageUrl of product.images) {
+        try {
+          const urlObj = new URL(imageUrl);
+          const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/products\/(.+)$/);
+          if (pathMatch) {
+            const filePath = pathMatch[1];
+            await supabase.storage.from("products").remove([filePath]);
+            console.log(`Deleted image: ${filePath}`);
+          }
+        } catch (error) {
+          console.warn(`Failed to delete image ${imageUrl}:`, error);
+          // Continua mesmo se falhar, pois o importante é deletar o produto
+        }
+      }
+    }
+
+    // Deletar produto do banco
     const { error } = await supabase
       .from("products")
       .delete()

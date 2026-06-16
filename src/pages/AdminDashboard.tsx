@@ -18,10 +18,11 @@ import AdminBrandsManager from "@/components/AdminBrandsManager";
 import AdminModelManager from "@/components/AdminModelManager";
 import AdminVariantManager from "@/components/AdminVariantManager";
 import ModelSelector from "@/components/ModelSelector";
-import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2, Layers, QrCode } from "lucide-react";
+import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image, Star, Tag, Database, Power, Grid2x2, Layers, QrCode, AlertTriangle } from "lucide-react";
 import MigrationHelper from "@/components/MigrationHelper";
 import AdminCardFormatManager from "@/components/AdminCardFormatManager";
 import AdminQRCodeManager from "@/components/AdminQRCodeManager";
+import { AdminErrorMonitor } from "@/components/AdminErrorMonitor";
 import { useToast } from "@/hooks/use-toast";
 
 const CONDITIONS = ["novo", "seminovo", "excelente", "bom", "regular"];
@@ -50,7 +51,7 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "formato" | "qrcode" | "migracao">("insights");
+  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "formato" | "qrcode" | "erros" | "migracao">("insights");
   const [productsPage, setProductsPage] = useState(1);
   const [itemsPerPage] = useState(50);
 
@@ -427,6 +428,17 @@ export default function AdminDashboard() {
           QR Code
         </button>
         <button
+          onClick={() => setActiveTab("erros")}
+          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
+            activeTab === "erros"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <AlertTriangle className="h-4 w-4" />
+          Erros
+        </button>
+        <button
           onClick={() => setActiveTab("migracao")}
           className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
             activeTab === "migracao"
@@ -492,6 +504,13 @@ export default function AdminDashboard() {
       {activeTab === "qrcode" && (
         <div className="mb-8">
           <AdminQRCodeManager />
+        </div>
+      )}
+
+      {/* Erros Tab */}
+      {activeTab === "erros" && (
+        <div className="mb-8">
+          <AdminErrorMonitor />
         </div>
       )}
 
