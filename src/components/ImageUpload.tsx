@@ -55,20 +55,6 @@ export const ImageUpload = ({
     });
   };
 
-  // Deletar imagem do Supabase storage
-  const deleteImageFromStorage = async (url: string): Promise<void> => {
-    try {
-      const urlObj = new URL(url);
-      const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/public\/products\/(.+)$/);
-      if (!pathMatch) return;
-
-      const filePath = pathMatch[1];
-      await supabase.storage.from("products").remove([filePath]);
-    } catch (error) {
-      console.warn("Failed to cleanup storage file:", error);
-    }
-  };
-
   const uploadImage = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast({
@@ -203,17 +189,12 @@ export const ImageUpload = ({
     toast({ title: "Vídeo adicionado com sucesso!" });
   };
 
-  const removeImage = async (index: number) => {
-    const urlToDelete = images[index];
+  const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
-
     setImages(newImages);
     onImagesUrls(newImages);
-
-    // Cleanup assíncrono (não bloqueia UI)
-    deleteImageFromStorage(urlToDelete).catch((error) => {
-      console.error("Cleanup failed for image:", error);
-    });
+    // Nota: Arquivo não é deletado do storage aqui
+    // Será deletado apenas quando o produto for deletado completamente
   };
 
   const removeVideo = () => {

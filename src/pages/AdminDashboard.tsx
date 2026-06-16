@@ -22,7 +22,6 @@ import { Pencil, Trash2, Plus, LogOut, Loader2, BarChart3, Package, Menu, Image,
 import MigrationHelper from "@/components/MigrationHelper";
 import AdminCardFormatManager from "@/components/AdminCardFormatManager";
 import AdminQRCodeManager from "@/components/AdminQRCodeManager";
-import { StorageCleanup } from "@/components/StorageCleanup";
 import { useToast } from "@/hooks/use-toast";
 
 const CONDITIONS = ["novo", "seminovo", "excelente", "bom", "regular"];
@@ -51,7 +50,7 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "formato" | "qrcode" | "storage" | "migracao">("insights");
+  const [activeTab, setActiveTab] = useState<"insights" | "produtos" | "menu" | "marcas" | "modelos" | "hero" | "destaques" | "formato" | "qrcode" | "migracao">("insights");
   const [productsPage, setProductsPage] = useState(1);
   const [itemsPerPage] = useState(50);
 
@@ -428,17 +427,6 @@ export default function AdminDashboard() {
           QR Code
         </button>
         <button
-          onClick={() => setActiveTab("storage")}
-          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
-            activeTab === "storage"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Database className="h-4 w-4" />
-          Storage
-        </button>
-        <button
           onClick={() => setActiveTab("migracao")}
           className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
             activeTab === "migracao"
@@ -504,16 +492,6 @@ export default function AdminDashboard() {
       {activeTab === "qrcode" && (
         <div className="mb-8">
           <AdminQRCodeManager />
-        </div>
-      )}
-
-      {/* Storage Tab */}
-      {activeTab === "storage" && (
-        <div className="mb-8">
-          <div className="max-w-2xl">
-            <h2 className="text-2xl font-bold mb-4">Gerenciamento de Storage</h2>
-            <StorageCleanup />
-          </div>
         </div>
       )}
 
