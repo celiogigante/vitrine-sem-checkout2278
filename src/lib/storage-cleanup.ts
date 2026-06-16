@@ -39,8 +39,13 @@ export const deleteStorageFiles = async (filePaths: string[]): Promise<void> => 
   }
 };
 
-// Limpar imagens órfãs (não referenciadas em nenhum produto)
-export const cleanupOrphanedImages = async (): Promise<number> => {
+// Analisar imagens órfãs sem deletar (SEGURO)
+export const analyzeOrphanedImages = async (): Promise<{
+  totalFiles: number;
+  referencedFiles: number;
+  orphanedCount: number;
+  orphanedPaths?: string[];
+}> => {
   try {
     // Listar recursivamente todos os arquivos no bucket
     const allFiles: string[] = [];
@@ -73,13 +78,18 @@ export const cleanupOrphanedImages = async (): Promise<number> => {
 
     if (allFiles.length === 0) {
       console.log("No files found in storage");
-      return 0;
+      return {
+        totalFiles: 0,
+        referencedFiles: 0,
+        orphanedCount: 0,
+        orphanedPaths: [],
+      };
     }
 
     // Buscar todas as URLs de imagens referenciadas
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("images");
+      .select("id, images");
 
     if (productsError) throw productsError;
 
@@ -97,7 +107,9 @@ export const cleanupOrphanedImages = async (): Promise<number> => {
         if (Array.isArray(product.images)) {
           product.images.forEach((url: string) => {
             const path = extractFilePathFromUrl(url);
-            if (path) referencedPaths.add(path);
+            if (path) {
+              referencedPaths.add(path);
+            }
           });
         }
       });
@@ -122,24 +134,28 @@ export const cleanupOrphanedImages = async (): Promise<number> => {
       }
     });
 
-    console.log(`Found ${allFiles.length} total files, ${referencedPaths.size} referenced, ${orphanedPaths.length} orphaned`);
+    console.log(
+      `Analysis: ${allFiles.length} total, ${referencedPaths.size} referenced, ${orphanedPaths.length} orphaned`
+    );
+    console.log("Orphaned files:", orphanedPaths);
 
-    // Deletar órfãos em lotes de 100
-    let deletedCount = 0;
-    if (orphanedPaths.length > 0) {
-      for (let i = 0; i < orphanedPaths.length; i += 100) {
-        const batch = orphanedPaths.slice(i, i + 100);
-        await deleteStorageFiles(batch);
-        deletedCount += batch.length;
-      }
-    }
-
-    console.log(`Cleanup completed: ${deletedCount} orphaned files deleted`);
-    return deletedCount;
+    return {
+      totalFiles: allFiles.length,
+      referencedFiles: referencedPaths.size,
+      orphanedCount: orphanedPaths.length,
+      orphanedPaths,
+    };
   } catch (error) {
-    console.error("Cleanup operation failed:", error);
+    console.error("Analysis failed:", error);
     throw error;
   }
+};
+
+// Limpar imagens órfãs - DESABILITADO ATÉ CORRIGIR
+export const cleanupOrphanedImages = async (): Promise<number> => {
+  throw new Error(
+    "Cleanup temporariamente desabilitado após deletar 95 imagens. Use analyzeOrphanedImages() para verificar primeiro."
+  );
 };
 
 // Validar se uma URL de imagem está acessível
