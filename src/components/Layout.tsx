@@ -5,9 +5,11 @@ import ScrollToTop from "./ScrollToTop";
 import FloatingWhatsAppButton from "./FloatingWhatsAppButton";
 import FloatingMapsButton from "./FloatingMapsButton";
 import useScrollToTop from "@/hooks/useScrollToTop";
+import { useErrorLogger } from "@/hooks/useErrorLogger";
 
 const Layout = () => {
   useScrollToTop();
+  useErrorLogger();
 
   return (
     <div className="flex min-h-screen flex-col">
