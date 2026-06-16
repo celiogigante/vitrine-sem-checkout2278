@@ -42,13 +42,38 @@ export const deleteStorageFiles = async (filePaths: string[]): Promise<void> => 
 // Limpar imagens órfãs (não referenciadas em nenhum produto)
 export const cleanupOrphanedImages = async (): Promise<number> => {
   try {
-    // Listar todos os arquivos no bucket
-    const { data: allFiles, error: listError } = await supabase.storage
-      .from("products")
-      .list("", { limit: 1000, offset: 0 });
+    // Listar recursivamente todos os arquivos no bucket
+    const allFiles: string[] = [];
 
-    if (listError || !allFiles) {
-      throw listError || new Error("Failed to list files");
+    const listFilesRecursive = async (path: string): Promise<void> => {
+      const { data: files, error } = await supabase.storage
+        .from("products")
+        .list(path, { limit: 1000 });
+
+      if (error) {
+        console.warn(`Failed to list path ${path}:`, error);
+        return;
+      }
+
+      if (!files) return;
+
+      for (const file of files) {
+        if (file.id === null) {
+          // É uma pasta (id é null)
+          await listFilesRecursive(`${path}${path ? "/" : ""}${file.name}`);
+        } else {
+          // É um arquivo
+          allFiles.push(`${path}${path ? "/" : ""}${file.name}`);
+        }
+      }
+    };
+
+    // Começar listagem do raiz
+    await listFilesRecursive("");
+
+    if (allFiles.length === 0) {
+      console.log("No files found in storage");
+      return 0;
     }
 
     // Buscar todas as URLs de imagens referenciadas
@@ -91,19 +116,22 @@ export const cleanupOrphanedImages = async (): Promise<number> => {
 
     // Encontrar arquivos órfãos
     const orphanedPaths: string[] = [];
-    allFiles.forEach((file) => {
-      const fullPath = file.name;
-      if (!referencedPaths.has(fullPath)) {
-        orphanedPaths.push(fullPath);
+    allFiles.forEach((filePath) => {
+      if (!referencedPaths.has(filePath)) {
+        orphanedPaths.push(filePath);
       }
     });
 
+    console.log(`Found ${allFiles.length} total files, ${referencedPaths.size} referenced, ${orphanedPaths.length} orphaned`);
+
     // Deletar órfãos em lotes de 100
     let deletedCount = 0;
-    for (let i = 0; i < orphanedPaths.length; i += 100) {
-      const batch = orphanedPaths.slice(i, i + 100);
-      await deleteStorageFiles(batch);
-      deletedCount += batch.length;
+    if (orphanedPaths.length > 0) {
+      for (let i = 0; i < orphanedPaths.length; i += 100) {
+        const batch = orphanedPaths.slice(i, i + 100);
+        await deleteStorageFiles(batch);
+        deletedCount += batch.length;
+      }
     }
 
     console.log(`Cleanup completed: ${deletedCount} orphaned files deleted`);
