@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { isAdmin, login, logout } from "@/lib/auth";
-import { getProducts, addProduct, updateProduct, deleteProduct, BRANDS, CONDITIONS, STATUSES, conditionLabel, statusLabel, getSettings, saveSettings, slugify, type Product, type SiteSettings } from "@/lib/products";
+import { getProducts, addProduct, updateProduct, deleteProduct, BRANDS, CONDITIONS, STATUSES, conditionLabel, statusLabel, getSettings, saveSettings, slugify, checkDuplicateProduct, type Product, type SiteSettings } from "@/lib/products";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pencil, Trash2, Plus, LogOut, Lock, X } from "lucide-react";
+import { Pencil, Trash2, Plus, LogOut, Lock, X, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AdminProductFlowGuide from "@/components/AdminProductFlowGuide";
 
 const emptyForm = {
   name: "", brand: "Apple", price: 0, originalPrice: undefined as number | undefined,
@@ -61,8 +62,18 @@ const Admin = () => {
       await updateProduct(editing, data);
       toast({ title: "Produto atualizado!" });
     } else {
+      // Check for duplicates
+      const duplicate = await checkDuplicateProduct(form.name, form.brand);
+      if (duplicate) {
+        toast({
+          title: "⚠️ Produto já existe!",
+          description: `"${form.name}" de ${form.brand} já foi cadastrado. Se precisa de múltiplos celulares iguais, use VARIAÇÕES dentro do mesmo produto.`,
+          variant: "destructive"
+        });
+        return;
+      }
       await addProduct(data);
-      toast({ title: "Produto adicionado!" });
+      toast({ title: "✅ Produto adicionado!" });
     }
     await loadProducts();
     resetForm();
@@ -135,6 +146,7 @@ const Admin = () => {
         </TabsList>
 
         <TabsContent value="products">
+          <AdminProductFlowGuide />
           <div className="flex justify-end mb-4">
             <Button onClick={() => { resetForm(); setShowForm(true); }} size="sm">
               <Plus className="mr-1 h-4 w-4" /> Novo produto

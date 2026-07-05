@@ -144,6 +144,33 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 }
 
 /**
+ * Check for duplicate products by name and brand
+ */
+export async function checkDuplicateProduct(name: string, brand: string, excludeId?: string): Promise<Product | null> {
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("name", name)
+      .eq("brand", brand);
+
+    if (error || !data || data.length === 0) {
+      return null;
+    }
+
+    const existing = data[0];
+    if (excludeId && existing.id === excludeId) {
+      return null;
+    }
+
+    return fromSupabaseProduct(existing);
+  } catch (err) {
+    console.error("Exception checking duplicate:", err);
+    return null;
+  }
+}
+
+/**
  * Create a new product in Supabase
  */
 export async function addProduct(
