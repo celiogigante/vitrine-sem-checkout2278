@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pencil, Trash2, Plus, LogOut, Lock, X, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AdminProductFlowGuide from "@/components/AdminProductFlowGuide";
+import AdminProductWizard from "@/components/AdminProductWizard";
 
 const emptyForm = {
   name: "", brand: "Apple", price: 0, originalPrice: undefined as number | undefined,
@@ -30,6 +31,7 @@ const Admin = () => {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [showForm, setShowForm] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [settings, setSettings] = useState<SiteSettings>(getSettings());
   const { toast } = useToast();
 
@@ -148,10 +150,18 @@ const Admin = () => {
         <TabsContent value="products">
           <AdminProductFlowGuide />
           <div className="flex justify-end mb-4">
-            <Button onClick={() => { resetForm(); setShowForm(true); }} size="sm">
-              <Plus className="mr-1 h-4 w-4" /> Novo produto
+            <Button onClick={() => setShowWizard(true)} size="sm" className="gap-2">
+              <Plus className="h-4 w-4" /> Adicionar produto
             </Button>
           </div>
+
+          {showWizard && (
+            <AdminProductWizard
+              onCreateNew={() => { resetForm(); setShowForm(true); }}
+              onViewExisting={() => {}}
+              onClose={() => setShowWizard(false)}
+            />
+          )}
 
           {showForm && (
             <div className="mb-8 rounded-xl border bg-card p-6 space-y-4">
