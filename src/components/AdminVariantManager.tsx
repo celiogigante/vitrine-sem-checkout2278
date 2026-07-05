@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, Pencil, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AdminVariationsBanner from "./AdminVariationsBanner";
 import {
   getProductVariants,
   addProductVariant,
@@ -183,13 +184,15 @@ export default function AdminVariantManager({ productId }: AdminVariantManagerPr
 
   return (
     <div className="space-y-4">
+      <AdminVariationsBanner productName={productName} />
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-lg">Variações de Produtos</h3>
           <p className="text-sm text-muted-foreground">Cadastre diferentes versões deste produto</p>
         </div>
         {!showForm && (
-          <Button onClick={() => setShowForm(true)} size="sm">
+          <Button onClick={() => setShowForm(true)} size="sm" className="bg-green-600 hover:bg-green-700">
             <Plus className="mr-1 h-4 w-4" /> Adicionar Variação
           </Button>
         )}
