@@ -1,10 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase, Product, Order, Customer } from "@/lib/supabase";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
-import { Loader2, TrendingUp, ShoppingCart, Users, Eye, Package, DollarSign, MessageCircle, X } from "lucide-react";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Loader2, TrendingUp, ShoppingCart, Users, Eye, Package, DollarSign, MessageCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getWhatsAppClickCount, getWhatsAppClicksRankingByModel, getModelViewsAndWhatsAppClicks } from "@/lib/products";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type PeriodKey = "7" | "15" | "30" | "month" | "2months" | "6months" | "year" | "custom";
+
+interface DateRange {
+  start: Date;
+  end: Date;
+}
+
+interface ModelRecord {
+  id: string;
+  name: string;
+}
+
+interface ProductEvent {
+  product_id: string;
+  created_at: string;
+}
+
+interface WhatsAppEvent {
+  product_id: string | null;
+  model_id: string | null;
+  created_at: string;
+}
 
 interface InsightsData {
   totalProducts: number;
@@ -15,9 +39,8 @@ interface InsightsData {
   totalCustomers: number;
   totalOrders: number;
   totalRevenue: number;
-  topProducts: Product[];
+  topProducts: Array<Product & { event_views: number }>;
   topProductsByClicks: Array<{ product_id: string; product_name: string; total_clicks: number }>;
-  whatsappClicksByModel: Array<{ modelId: string; modelName: string; totalClicks: number }>;
   modelViewsAndClicks: Array<{ modelId: string; modelName: string; views: number; whatsappClicks: number; conversionRate: number }>;
   conditionDistribution: Array<{ name: string; value: number }>;
   brandDistribution: Array<{ name: string; value: number }>;
@@ -25,174 +48,209 @@ interface InsightsData {
   averageProductPrice: number;
 }
 
+const PERIOD_OPTIONS: Array<{ value: PeriodKey; label: string }> = [
+  { value: "7", label: "Últimos 7 dias" },
+  { value: "15", label: "Últimos 15 dias" },
+  { value: "30", label: "Últimos 30 dias" },
+  { value: "month", label: "Último mês" },
+  { value: "2months", label: "Últimos 2 meses" },
+  { value: "6months", label: "Últimos 6 meses" },
+  { value: "year", label: "Último ano" },
+  { value: "custom", label: "Personalizado" },
+];
+
+function getPeriodRange(period: PeriodKey, customStartDate: string, customEndDate: string): DateRange | null {
+  const end = new Date();
+  let start = new Date(end);
+
+  if (period === "custom") {
+    if (!customStartDate || !customEndDate) return null;
+    start = new Date(`${customStartDate}T00:00:00`);
+    const customEnd = new Date(`${customEndDate}T00:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(customEnd.getTime()) || start > customEnd) return null;
+    customEnd.setDate(customEnd.getDate() + 1);
+    return { start, end: customEnd };
+  }
+
+  if (period === "month") start.setMonth(start.getMonth() - 1);
+  else if (period === "2months") start.setMonth(start.getMonth() - 2);
+  else if (period === "6months") start.setMonth(start.getMonth() - 6);
+  else if (period === "year") start.setFullYear(start.getFullYear() - 1);
+  else start.setDate(start.getDate() - Number(period));
+
+  return { start, end };
+}
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("pt-BR");
+}
+
 export function Insights() {
   const [data, setData] = useState<InsightsData | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTemporalLoading, setIsTemporalLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [period, setPeriod] = useState<PeriodKey>("30");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [showConversionModal, setShowConversionModal] = useState(false);
+  const temporalRequestRef = useRef(0);
 
-  useEffect(() => {
-    loadInsights();
-  }, []);
+  const loadStaticInsights = async (): Promise<Product[]> => {
+    const [productsResult, customersResult, ordersResult] = await Promise.all([
+      supabase.from("products").select("*"),
+      supabase.from("customers").select("*"),
+      supabase.from("orders").select("*"),
+    ]);
+
+    if (productsResult.error) throw productsResult.error;
+    if (customersResult.error) throw customersResult.error;
+    if (ordersResult.error) throw ordersResult.error;
+
+    const productList = (productsResult.data || []) as Product[];
+    const customerList = (customersResult.data || []) as Customer[];
+    const orderList = (ordersResult.data || []) as Order[];
+    const totalProducts = productList.length;
+    const conditionMap: Record<string, number> = {};
+    const brandMap: Record<string, number> = {};
+    const statusMap: Record<string, number> = {};
+
+    productList.forEach((product) => {
+      conditionMap[product.condition] = (conditionMap[product.condition] || 0) + 1;
+      brandMap[product.brand] = (brandMap[product.brand] || 0) + 1;
+    });
+    orderList.forEach((order) => {
+      statusMap[order.status] = (statusMap[order.status] || 0) + 1;
+    });
+
+    setProducts(productList);
+    setData((current) => ({
+      totalProducts,
+      totalViews: current?.totalViews || 0,
+      whatsappClicks: current?.whatsappClicks || 0,
+      featuredProducts: productList.filter((product) => product.featured).length,
+      promotionProducts: productList.filter((product) => product.promotion).length,
+      totalCustomers: customerList.length,
+      totalOrders: orderList.length,
+      totalRevenue: orderList.reduce((sum, order) => sum + order.total_price, 0),
+      topProducts: current?.topProducts || [],
+      topProductsByClicks: current?.topProductsByClicks || [],
+      modelViewsAndClicks: current?.modelViewsAndClicks || [],
+      conditionDistribution: Object.entries(conditionMap).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+      })),
+      brandDistribution: Object.entries(brandMap)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8),
+      orderStatus: Object.entries(statusMap).map(([status, count]) => ({
+        status: status.charAt(0).toUpperCase() + status.slice(1),
+        count,
+      })),
+      averageProductPrice: totalProducts > 0
+        ? productList.reduce((sum, product) => sum + product.price, 0) / totalProducts
+        : 0,
+    }));
+
+    return productList;
+  };
+
+  const loadTemporalInsights = async (range: DateRange, productList: Product[]) => {
+    const requestId = ++temporalRequestRef.current;
+    try {
+      setIsTemporalLoading(true);
+      const start = range.start.toISOString();
+      const end = range.end.toISOString();
+      const [viewsResult, productClicksResult, whatsappResult, modelsResult] = await Promise.all([
+        supabase.from("product_views").select("product_id, created_at").gte("created_at", start).lt("created_at", end),
+        supabase.from("product_clicks").select("product_id, created_at").gte("created_at", start).lt("created_at", end),
+        supabase.from("whatsapp_clicks").select("product_id, model_id, created_at").gte("created_at", start).lt("created_at", end),
+        supabase.from("models").select("id, name"),
+      ]);
+
+      if (viewsResult.error) throw viewsResult.error;
+      if (productClicksResult.error) throw productClicksResult.error;
+      if (whatsappResult.error) throw whatsappResult.error;
+      if (modelsResult.error) throw modelsResult.error;
+
+      const viewEvents = (viewsResult.data || []) as ProductEvent[];
+      const productClickEvents = (productClicksResult.data || []) as ProductEvent[];
+      const whatsappEvents = (whatsappResult.data || []) as WhatsAppEvent[];
+      const modelMap = new Map((modelsResult.data as ModelRecord[] || []).map((model) => [model.id, model.name]));
+      const productMap = new Map(productList.map((product) => [product.id, product]));
+      const viewsByProduct = new Map<string, number>();
+      const clicksByProduct = new Map<string, number>();
+      const viewsByModel = new Map<string, number>();
+      const clicksByModel = new Map<string, number>();
+
+      viewEvents.forEach((event) => {
+        viewsByProduct.set(event.product_id, (viewsByProduct.get(event.product_id) || 0) + 1);
+        const modelId = productMap.get(event.product_id)?.model_id;
+        if (modelId) viewsByModel.set(modelId, (viewsByModel.get(modelId) || 0) + 1);
+      });
+      productClickEvents.forEach((event) => {
+        clicksByProduct.set(event.product_id, (clicksByProduct.get(event.product_id) || 0) + 1);
+      });
+      whatsappEvents.forEach((event) => {
+        const modelId = event.model_id || (event.product_id ? productMap.get(event.product_id)?.model_id : undefined);
+        if (modelId) clicksByModel.set(modelId, (clicksByModel.get(modelId) || 0) + 1);
+      });
+
+      const topProducts = Array.from(viewsByProduct.entries())
+        .map(([productId, event_views]) => ({ ...productMap.get(productId), event_views }))
+        .filter((product): product is Product & { event_views: number } => Boolean(product.id))
+        .sort((a, b) => b.event_views - a.event_views)
+        .slice(0, 5);
+      const topProductsByClicks = Array.from(clicksByProduct.entries())
+        .map(([productId, total_clicks]) => ({
+          product_id: productId,
+          product_name: productMap.get(productId)?.name || "Produto desconhecido",
+          total_clicks,
+        }))
+        .sort((a, b) => b.total_clicks - a.total_clicks)
+        .slice(0, 5);
+      const modelViewsAndClicks = Array.from(modelMap.entries())
+        .map(([modelId, modelName]) => {
+          const views = viewsByModel.get(modelId) || 0;
+          const whatsappClicks = clicksByModel.get(modelId) || 0;
+          return {
+            modelId,
+            modelName,
+            views,
+            whatsappClicks,
+            conversionRate: views > 0 ? Math.round((whatsappClicks / views) * 1000) / 10 : 0,
+          };
+        })
+        .filter((model) => model.views > 0 || model.whatsappClicks > 0)
+        .sort((a, b) => b.views - a.views || b.whatsappClicks - a.whatsappClicks);
+
+      if (requestId !== temporalRequestRef.current) return;
+      setData((current) => current ? {
+        ...current,
+        totalViews: viewEvents.length,
+        whatsappClicks: whatsappEvents.length,
+        topProducts,
+        topProductsByClicks,
+        modelViewsAndClicks,
+      } : current);
+      setLastRefresh(new Date());
+    } catch (err) {
+      if (requestId !== temporalRequestRef.current) return;
+      console.error("Error loading temporal insights:", err);
+      alert(`Erro ao carregar métricas do período: ${err instanceof Error ? err.message : "erro desconhecido"}`);
+    } finally {
+      if (requestId === temporalRequestRef.current) setIsTemporalLoading(false);
+    }
+  };
 
   const loadInsights = async () => {
     try {
       setIsLoading(true);
-
-      // Load products
-      let products = [];
-      try {
-        const { data: productsData, error: productsError } = await supabase
-          .from("products")
-          .select("*");
-
-        if (productsError) {
-          console.error("Error loading products:", productsError);
-        } else if (productsData) {
-          products = productsData;
-        }
-      } catch (err) {
-        console.error("Exception loading products:", err);
-      }
-
-      // Load customers with error handling
-      let customerList = [];
-      try {
-        const { data: customers } = await supabase
-          .from("customers")
-          .select("*");
-        if (customers) customerList = customers;
-      } catch (err) {
-        console.error("Error loading customers:", err);
-      }
-
-      // Load orders with error handling
-      let orderList = [];
-      try {
-        const { data: orders } = await supabase
-          .from("orders")
-          .select("*");
-        if (orders) orderList = orders;
-      } catch (err) {
-        console.error("Error loading orders:", err);
-      }
-
-      // Load product clicks with error handling
-      let clickList: Array<{ product_id: string }> = [];
-      try {
-        const { data: clicks } = await supabase
-          .from("product_clicks")
-          .select("product_id");
-
-        if (clicks) {
-          clickList = (clicks || []) as Array<{ product_id: string }>;
-        }
-      } catch (err) {
-        console.error("Error loading product clicks:", err);
-      }
-
-      const productList = (products || []) as Product[];
-
-      // Calculate metrics
-      const totalProducts = productList.length;
-      const totalViews = productList.reduce((sum, p) => sum + (p.views || 0), 0);
-      const featuredProducts = productList.filter((p) => p.featured).length;
-      const promotionProducts = productList.filter((p) => p.promotion).length;
-      const totalCustomers = customerList.length;
-      const totalOrders = orderList.length;
-      const totalRevenue = orderList.reduce((sum, o) => sum + o.total_price, 0);
-      const averageProductPrice =
-        totalProducts > 0
-          ? productList.reduce((sum, p) => sum + p.price, 0) / totalProducts
-          : 0;
-
-      // Top products by views
-      const topProducts = productList
-        .sort((a, b) => (b.views || 0) - (a.views || 0))
-        .slice(0, 5);
-
-      // Top products by clicks
-      const clickCountMap: Record<string, { name: string; count: number }> = {};
-      clickList.forEach((click) => {
-        const productId = click.product_id;
-        const product = productList.find((p) => p.id === productId);
-        if (product) {
-          if (!clickCountMap[productId]) {
-            clickCountMap[productId] = { name: product.name, count: 0 };
-          }
-          clickCountMap[productId].count++;
-        }
-      });
-      const topProductsByClicks = Object.entries(clickCountMap)
-        .map(([productId, data]) => ({
-          product_id: productId,
-          product_name: data.name,
-          total_clicks: data.count,
-        }))
-        .sort((a, b) => b.total_clicks - a.total_clicks)
-        .slice(0, 5);
-
-      // Condition distribution
-      const conditionMap: Record<string, number> = {};
-      productList.forEach((p) => {
-        conditionMap[p.condition] = (conditionMap[p.condition] || 0) + 1;
-      });
-      const conditionDistribution = Object.entries(conditionMap).map(
-        ([name, value]) => ({
-          name: name.charAt(0).toUpperCase() + name.slice(1),
-          value,
-        })
-      );
-
-      // Brand distribution
-      const brandMap: Record<string, number> = {};
-      productList.forEach((p) => {
-        brandMap[p.brand] = (brandMap[p.brand] || 0) + 1;
-      });
-      const brandDistribution = Object.entries(brandMap)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 8);
-
-      // Order status distribution
-      const statusMap: Record<string, number> = {};
-      orderList.forEach((o) => {
-        statusMap[o.status] = (statusMap[o.status] || 0) + 1;
-      });
-      const orderStatus = Object.entries(statusMap).map(([status, count]) => ({
-        status: status.charAt(0).toUpperCase() + status.slice(1),
-        count,
-      }));
-
-      // Get WhatsApp clicks count
-      const whatsappClicks = await getWhatsAppClickCount();
-
-      // Get WhatsApp clicks by model
-      const whatsappClicksByModel = await getWhatsAppClicksRankingByModel();
-
-      // Get model views and WhatsApp clicks with conversion rate
-      const modelViewsAndClicks = await getModelViewsAndWhatsAppClicks();
-
-      setData({
-        totalProducts,
-        totalViews,
-        whatsappClicks,
-        featuredProducts,
-        promotionProducts,
-        totalCustomers,
-        totalOrders,
-        totalRevenue,
-        topProducts,
-        topProductsByClicks,
-        whatsappClicksByModel,
-        modelViewsAndClicks,
-        conditionDistribution,
-        brandDistribution,
-        orderStatus,
-        averageProductPrice,
-      });
-
-      setLastRefresh(new Date());
+      const productList = await loadStaticInsights();
+      const range = getPeriodRange(period, customStartDate, customEndDate);
+      if (range) await loadTemporalInsights(range, productList);
     } catch (err) {
       console.error("Error loading insights:", err);
       const errorMsg = err instanceof Error ? err.message : "Erro ao carregar insights";
@@ -200,6 +258,58 @@ export function Insights() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadInsights();
+  }, []);
+
+  useEffect(() => {
+    const range = getPeriodRange(period, customStartDate, customEndDate);
+    if (range && products.length > 0) loadTemporalInsights(range, products);
+  }, [period, customStartDate, customEndDate]);
+
+  const handleGenerateReport = () => {
+    if (!data) return;
+    const range = getPeriodRange(period, customStartDate, customEndDate);
+    if (!range) return;
+
+    const modelRows = data.modelViewsAndClicks;
+    const viewsRanking = [...modelRows].sort((a, b) => b.views - a.views);
+    const clicksRanking = [...modelRows].sort((a, b) => b.whatsappClicks - a.whatsappClicks);
+    const rows = modelRows.map((model) => [
+      viewsRanking.findIndex((item) => item.modelId === model.modelId) + 1,
+      model.modelName,
+      model.views,
+      clicksRanking.findIndex((item) => item.modelId === model.modelId) + 1,
+      model.whatsappClicks,
+      model.conversionRate,
+      data.totalViews,
+      data.whatsappClicks,
+      formatDate(range.start),
+      formatDate(new Date(range.end.getTime() - 1)),
+    ]);
+    const headers = [
+      "Posição no ranking de acessos",
+      "Modelo",
+      "Acessos do modelo",
+      "Posição no ranking de cliques",
+      "Cliques no WhatsApp do modelo",
+      "Taxa de conversão (%)",
+      "Total de acessos do período",
+      "Total de cliques do período",
+      "Data inicial",
+      "Data final",
+    ];
+    const csvValue = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+    const csv = [headers, ...rows].map((row) => row.map(csvValue).join(";")).join("\n");
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `relatorio-insights-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
@@ -240,6 +350,73 @@ export function Insights() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-lg border bg-card p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="w-full sm:w-56">
+              <label htmlFor="insights-period" className="mb-1 block text-sm font-medium">
+                Período das métricas
+              </label>
+              <Select value={period} onValueChange={(value) => setPeriod(value as PeriodKey)}>
+                <SelectTrigger id="insights-period">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIOD_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {period === "custom" && (
+              <>
+                <div>
+                  <label htmlFor="insights-start-date" className="mb-1 block text-sm font-medium">
+                    Data inicial
+                  </label>
+                  <Input
+                    id="insights-start-date"
+                    type="date"
+                    value={customStartDate}
+                    onChange={(event) => setCustomStartDate(event.target.value)}
+                    className="w-full sm:w-40"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="insights-end-date" className="mb-1 block text-sm font-medium">
+                    Data final
+                  </label>
+                  <Input
+                    id="insights-end-date"
+                    type="date"
+                    value={customEndDate}
+                    min={customStartDate || undefined}
+                    onChange={(event) => setCustomEndDate(event.target.value)}
+                    className="w-full sm:w-40"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <Button
+            onClick={handleGenerateReport}
+            disabled={isTemporalLoading || !getPeriodRange(period, customStartDate, customEndDate)}
+            variant="outline"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Gerar relatório
+          </Button>
+        </div>
+        {period === "custom" && !getPeriodRange(period, customStartDate, customEndDate) && (
+          <p className="mt-2 text-sm text-muted-foreground">Informe um intervalo de datas válido para carregar as métricas.</p>
+        )}
+        {isTemporalLoading && (
+          <p className="mt-2 text-sm text-muted-foreground">Atualizando métricas do período...</p>
+        )}
+      </div>
+
       {/* Refresh Info */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <p>Última atualização: {lastRefresh.toLocaleTimeString("pt-BR")}</p>
@@ -364,7 +541,7 @@ export function Insights() {
                   <span className="text-muted-foreground font-medium">#{index + 1}</span>
                   <span className="truncate">{product.name}</span>
                 </div>
-                <span className="font-bold">{product.views || 0}</span>
+                <span className="font-bold">{product.event_views}</span>
               </div>
             ))}
           </div>
