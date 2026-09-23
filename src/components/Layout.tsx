@@ -1,17 +1,28 @@
 import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
-import WhatsAppFloat from "./WhatsAppFloat";
+import ScrollToTop from "./ScrollToTop";
+import FloatingWhatsAppButton from "./FloatingWhatsAppButton";
+import FloatingMapsButton from "./FloatingMapsButton";
+import useScrollToTop from "@/hooks/useScrollToTop";
+import { useErrorLogger } from "@/hooks/useErrorLogger";
 
-const Layout = () => (
-  <div className="flex min-h-screen flex-col">
-    <Header />
-    <main className="flex-1">
-      <Outlet />
-    </main>
-    <Footer />
-    <WhatsAppFloat />
-  </div>
-);
+const Layout = () => {
+  useScrollToTop();
+  useErrorLogger();
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <main className="flex-1" style={{ backgroundColor: '#3A3A32' }}>
+        <Outlet />
+      </main>
+      <Footer />
+      <ScrollToTop />
+      <FloatingWhatsAppButton />
+      <FloatingMapsButton />
+    </div>
+  );
+};
 
 export default Layout;

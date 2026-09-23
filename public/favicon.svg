@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <rect width="800" height="800" fill="#0052CC"/>
+  <g transform="translate(400, 400)">
+    <!-- Yellow heartbeat line with 3D effect -->
+    <defs>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="4" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+      </filter>
+    </defs>
+    
+    <!-- First flat section (left) -->
+    <path d="M -300 0 Q -200 -30 -150 0" stroke="#FFD700" stroke-width="60" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"/>
+    
+    <!-- First peak (tall) -->
+    <path d="M -150 0 L -80 -220 L -20 0" stroke="#FFD700" stroke-width="60" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"/>
+    
+    <!-- Second peak (medium) -->
+    <path d="M -20 0 L 50 -140 L 120 0" stroke="#FFD700" stroke-width="60" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"/>
+    
+    <!-- Final flat section (right) -->
+    <path d="M 120 0 Q 170 -30 220 0 Q 270 30 300 0" stroke="#FFD700" stroke-width="60" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)"/>
+  </g>
+</svg>

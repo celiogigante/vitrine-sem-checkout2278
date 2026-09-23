@@ -1,46 +1,186 @@
-import { Link, useLocation } from "react-router-dom";
-import { Smartphone, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/authContext";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { getSettings, getProducts, type Product } from "@/lib/products";
+import SearchAutoComplete from "@/components/SearchAutoComplete";
+
+interface MenuItem {
+  id: string;
+  label: string;
+  href: string;
+  is_visible: boolean;
+}
 
 const Header = () => {
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [s, setS] = useState(getSettings());
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user, isAdmin } = useAuth();
+
   const isActive = (path: string) => location.pathname === path;
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleProductSelect = (product: Product) => {
+    navigate(`/produto/${product.id}`);
+    setSearchQuery("");
+  };
+
+  useEffect(() => {
+    const h = () => setS(getSettings());
+    window.addEventListener("settings-updated", h);
+    return () => window.removeEventListener("settings-updated", h);
+  }, []);
+
+  useEffect(() => {
+    loadMenuItems();
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      const productList = await getProducts();
+      setProducts(productList);
+    } catch (err) {
+      console.error("Erro ao carregar produtos:", err);
+    }
+  };
+
+  const loadMenuItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("menu_items")
+        .select("*")
+        .eq("is_visible", true)
+        .is("parent_id", null)
+        .order("order_index");
+
+      if (error) throw error;
+      setMenuItems((data || []) as MenuItem[]);
+    } catch (err) {
+      console.error("Error loading menu items:", err);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setOpen(false);
+    toast({ title: "Desconectado com sucesso" });
+    navigate("/");
+  };
+
   return (
-    <header className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-lg">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-          <Smartphone className="h-6 w-6 text-accent" />
-          <span>Master Cell</span>
+    <header className="sticky top-0 z-50 backdrop-blur-lg" style={{ backgroundColor: '#000000', borderBottom: '2px solid #fcd34d' }}>
+      <div className="container mx-auto flex h-24 items-center justify-between px-4 gap-4">
+        <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+          <img
+            src="https://cdn.builder.io/api/v1/image/assets%2F745a6a1096d546999a2f21f0471c7da5%2F79ed162aed044a158c0b43eac2527532?format=webp&width=800&height=1200"
+            alt="Master Cell Logo"
+            className="h-12 w-auto"
+          />
         </Link>
 
+        {/* Search bar - visible on all sizes */}
+        <div className="flex flex-1 max-w-xs md:max-w-xs">
+          <SearchAutoComplete
+            products={products}
+            value={searchQuery}
+            onChange={handleSearch}
+            placeholder="Buscar..."
+            onProductSelect={handleProductSelect}
+          />
+        </div>
+
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to="/" className={`text-sm font-medium transition-colors hover:text-accent ${isActive("/") ? "text-accent" : "text-muted-foreground"}`}>Início</Link>
-          <Link to="/produtos" className={`text-sm font-medium transition-colors hover:text-accent ${isActive("/produtos") ? "text-accent" : "text-muted-foreground"}`}>Produtos</Link>
-          <Button asChild size="sm" className="bg-whatsapp hover:bg-whatsapp-hover text-whatsapp-foreground">
-            <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer">
-              WhatsApp
-            </a>
-          </Button>
+        <nav className="hidden md:flex items-center gap-3 flex-shrink-0">
+          {menuItems.map((item) => (
+            <Button
+              key={item.id}
+              asChild
+              size="sm"
+              className="border border-yellow-300 bg-transparent text-yellow-300 hover:bg-yellow-300/10"
+            >
+              <Link to={item.href}>{item.label}</Link>
+            </Button>
+          ))}
+
+          {user && isAdmin && (
+            <Button asChild size="sm" className="border border-yellow-300 bg-transparent text-yellow-300 hover:bg-yellow-300/10">
+              <Link to="/admin">Painel</Link>
+            </Button>
+          )}
+
+          {user ? (
+            <Button
+              size="sm"
+              onClick={handleLogout}
+              className="border border-yellow-300 bg-transparent text-yellow-300 hover:bg-yellow-300/10 flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs">Sair</span>
+            </Button>
+          ) : null}
         </nav>
 
-        {/* Mobile toggle */}
-        <button className="md:hidden" onClick={() => setOpen(!open)}>
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {/* Mobile menu button */}
+        <button
+          className="md:hidden flex-shrink-0"
+          onClick={() => setOpen(!open)}
+          aria-label="Menu"
+        >
+          {open ? (
+            <X className="h-6 w-6 text-white" />
+          ) : (
+            <Menu className="h-6 w-6 text-white" />
+          )}
         </button>
       </div>
 
       {/* Mobile nav */}
       {open && (
-        <nav className="md:hidden border-t bg-card px-4 pb-4 pt-2 space-y-2">
-          <Link to="/" onClick={() => setOpen(false)} className="block py-2 text-sm font-medium">Início</Link>
-          <Link to="/produtos" onClick={() => setOpen(false)} className="block py-2 text-sm font-medium">Produtos</Link>
-          <Button asChild size="sm" className="w-full bg-whatsapp hover:bg-whatsapp-hover text-whatsapp-foreground">
-            <a href="https://wa.me/5511999999999" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-          </Button>
+        <nav className="md:hidden border-t px-4 pb-4 pt-2 space-y-2" style={{ backgroundColor: '#000000', borderTopColor: '#FFF9E6' }}>
+          {menuItems.map((item) => (
+            <Button
+              key={item.id}
+              asChild
+              size="sm"
+              className="w-full border border-yellow-300 bg-transparent text-yellow-300 hover:bg-yellow-300/10"
+            >
+              <Link to={item.href} onClick={() => setOpen(false)}>
+                {item.label}
+              </Link>
+            </Button>
+          ))}
+
+          {user && isAdmin && (
+            <Button asChild size="sm" className="w-full border border-yellow-300 bg-transparent text-yellow-300 hover:bg-yellow-300/10">
+              <Link to="/admin" onClick={() => setOpen(false)}>
+                Painel Admin
+              </Link>
+            </Button>
+          )}
+
+          {user ? (
+            <Button
+              onClick={handleLogout}
+              size="sm"
+              className="w-full border border-yellow-300 bg-transparent text-yellow-300 hover:bg-yellow-300/10 flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sair
+            </Button>
+          ) : null}
         </nav>
       )}
     </header>
